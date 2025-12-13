@@ -82,7 +82,7 @@ export default function DashboardView({ ctx }) {
                 <Activity className="mr-2 text-blue-500" size={20}/>
                 Évolution de la Posture & Risques
               </h3>
-              <select className="text-sm border-slate-200 rounded-md shadow-sm">
+              <select className="text-sm border-slate-200 rounded-md shadow-sm" aria-label="Période de temps">
                 <option>6 derniers mois</option>
                 <option>Cette année</option>
               </select>
