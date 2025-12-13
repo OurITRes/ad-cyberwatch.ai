@@ -41,8 +41,8 @@ export default function RemediationView({ ctx }) {
         {remediationViewMode === 'matrix' ? (
           <div className="h-96">
             <h3 className="font-bold text-slate-700 mb-4">Matrice Complexité vs Criticité (Quick Wins)</h3>
-            <ResponsiveGuard className="h-full">
-              <ResponsiveContainer width="100%" height="90%">
+            <div style={{ display: 'block', height: '328px', width: '100%', overflow: 'hidden' }}>
+              <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                   <CartesianGrid vertical={false} />
                   <XAxis type="number" dataKey="complexity" name="Complexité" unit="%" label={{ value: 'Effort / Complexité', position: 'bottom', offset: 0 }} />
@@ -53,7 +53,7 @@ export default function RemediationView({ ctx }) {
                   <Scatter name="Actions de remédiation" data={remediationPlan} fill="#4f46e5" shape="circle" />
                 </ScatterChart>
               </ResponsiveContainer>
-            </ResponsiveGuard>
+            </div>
             <p className="text-center text-xs text-slate-500 mt-2">Zone en haut à gauche : Priorité absolue (Fort Impact, Faible Effort)</p>
           </div>
         ) : (

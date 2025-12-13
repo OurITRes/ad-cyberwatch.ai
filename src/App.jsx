@@ -43,7 +43,7 @@ export default function AdSecurityOpsCenter() {
 
   const loadUsers = async () => {
     try {
-      const res = await authService.listUsers();
+      const res = await authService.getUsers();
       const list = Array.isArray(res) ? res : res?.users || res?.data || [];
       setUsers(list || []);
     } catch (e) {

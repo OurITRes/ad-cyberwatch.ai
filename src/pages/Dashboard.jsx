@@ -87,7 +87,7 @@ export default function DashboardView({ ctx }) {
                 <option>Cette année</option>
               </select>
             </div>
-            <ResponsiveGuard className="h-full">
+            <div style={{ display: 'block', height: '328px', width: '100%', overflow: 'hidden' }}>
               <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={MOCK_TREND_DATA} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
@@ -104,7 +104,7 @@ export default function DashboardView({ ctx }) {
                 <Line type="monotone" dataKey="risks" stroke="#ef4444" strokeWidth={2} name="Risques Détectés" />
               </AreaChart>
               </ResponsiveContainer>
-            </ResponsiveGuard>
+            </div>
           </Card>
 
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -151,23 +151,23 @@ export default function DashboardView({ ctx }) {
         <div className="space-y-6">
           <Card className="h-80">
             <h3 className="font-bold text-slate-700 mb-2">Couverture NIST CSF 2.0</h3>
-            <ResponsiveGuard className="h-full">
+            <div style={{ display: 'block', height: '288px', width: '100%', overflow: 'hidden' }}>
               <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={[
-                { category: 'Identify', score: 85, max: 100 },
-                { category: 'Protect', score: 45, max: 100 },
-                { category: 'Detect', score: 60, max: 100 },
-                { category: 'Respond', score: 70, max: 100 },
-                { category: 'Recover', score: 90, max: 100 },
-              ]}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="category" tick={{ fill: '#64748b', fontSize: 11 }} />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false}/>
-                <Radar name="Actuel" dataKey="score" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
-                <Legend />
-              </RadarChart>
+                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={[
+                  { category: 'Identify', score: 85, max: 100 },
+                  { category: 'Protect', score: 45, max: 100 },
+                  { category: 'Detect', score: 60, max: 100 },
+                  { category: 'Respond', score: 70, max: 100 },
+                  { category: 'Recover', score: 90, max: 100 },
+                ]}>
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="category" tick={{ fill: '#64748b', fontSize: 11 }} />
+                  <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false}/>
+                  <Radar name="Actuel" dataKey="score" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
+                  <Legend />
+                </RadarChart>
               </ResponsiveContainer>
-            </ResponsiveGuard>
+            </div>
           </Card>
 
           <Card className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white border-none relative overflow-hidden">
