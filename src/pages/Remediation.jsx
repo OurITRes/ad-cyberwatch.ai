@@ -44,7 +44,7 @@ export default function RemediationView({ ctx }) {
             <ResponsiveGuard className="h-full">
               <ResponsiveContainer width="100%" height="90%">
                 <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                  <CartesianGrid />
+                  <CartesianGrid vertical={false} />
                   <XAxis type="number" dataKey="complexity" name="Complexité" unit="%" label={{ value: 'Effort / Complexité', position: 'bottom', offset: 0 }} />
                   <YAxis type="number" dataKey="criticality" name="Criticité" unit="%" label={{ value: 'Impact / Criticité', angle: -90, position: 'left' }} />
                   <ZAxis range={[100, 300]} />

@@ -187,6 +187,10 @@ export default function ProfileView({ ctx }) {
               <option>AE</option>
             </select>
           </div>
+          <div classname = "w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparen">
+            <label className="block text-xs font-semibold text-slate-700 mb-2">Roles techniques</label>
+            <div className="w-full p-2 border border-slate-300 rounded bg-slate-50 text-slate-600 text-sm text-slate-600">{((authenticatedUser && authenticatedUser.roles) || currentUser.roles || []).join(', ')}</div>
+          </div>
           <div className="space-y-4 grid grid-cols-3 gap-4">
             <div className="mt-1">
               <label className="block text-xs font-semibold text-slate-700 mb-2 text-center">Avatar</label>
@@ -207,9 +211,6 @@ export default function ProfileView({ ctx }) {
                       </div>
                     )}
                   </div>
-                  <div className="absolute -right-3 top-0 h-48 flex items-center">
-                    <input type="range" min="-50" max="150" value={avatarOffsetY} onChange={(e) => setAvatarOffsetY(e.target.value)} className="h-48" style={{ writingMode: 'bt-lr', transform: 'rotate(270deg)' }} />
-                  </div>
                 </div>
               </div>
               <div className="mt-4 flex flex-col items-center">
@@ -221,10 +222,6 @@ export default function ProfileView({ ctx }) {
                 </div>
               </div>
             </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-2">Roles techniques</label>
-            <div className="text-sm text-slate-600">{((authenticatedUser && authenticatedUser.roles) || currentUser.roles || []).join(', ')}</div>
           </div>
           <div className="border-t border-slate-200 pt-4 mt-4">
             <h3 className="font-semibold text-slate-800 mb-4">Changer le mot de passe</h3>

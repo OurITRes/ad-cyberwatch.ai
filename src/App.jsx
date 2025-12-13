@@ -259,6 +259,9 @@ export default function AdSecurityOpsCenter() {
                   src={(authenticatedUser && authenticatedUser.profileIcon) || currentUser.profileIcon}
                   alt="avatar"
                   className="w-10 h-10 rounded-full object-cover"
+                  style={{
+                    objectPosition: `${(authenticatedUser && authenticatedUser.profileIconPosition?.x) || 50}% ${(authenticatedUser && authenticatedUser.profileIconPosition?.y) || 50}%`
+                  }}
                 />
               ) : (
                 getInitials(
@@ -273,10 +276,12 @@ export default function AdSecurityOpsCenter() {
               <span className="text-sm font-bold text-white truncate">
                 {(authenticatedUser && authenticatedUser.displayName) || currentUser.displayName}
               </span>
-              <span className="text-xs text-slate-500 truncate">
+              <span className="text-xs text-slate-400 truncate">
                 {(() => {
-                  const role = (authenticatedUser && authenticatedUser.businessRole) || currentUser.businessRole;
-                  return role ? role : 'Local Admin';
+                  const businessRole = (authenticatedUser && authenticatedUser.businessRole) || currentUser.businessRole;
+                  const appRoles = (authenticatedUser && authenticatedUser.roles) || currentUser.roles || [];
+                  const appRole = appRoles.length > 0 ? appRoles[0] : 'user';
+                  return businessRole ? `${businessRole.toUpperCase()} __ ${appRole}` : appRole;
                 })()}
               </span>
             </div>
