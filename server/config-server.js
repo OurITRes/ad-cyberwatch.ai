@@ -171,6 +171,146 @@ app.post('/auth/sso', (req, res) => {
   res.send({ ssoRedirect: 'https://sso.example.com/auth?client_id=demo' });
 });
 
+// --- Translation management endpoint ---
+app.post('/translations/remove-keys', (req, res) => {
+  try {
+    const { keys } = req.body || {};
+    console.log('Received request to remove keys:', keys);
+    
+    if (!Array.isArray(keys) || keys.length === 0) {
+      return res.status(400).send({ error: 'keys array required' });
+    }
+    
+    const i18nPath = path.join(__dirname, '..', 'src', 'i18n', 'index.js');
+    console.log('Reading file:', i18nPath);
+    
+    if (!fs.existsSync(i18nPath)) {
+      console.error('File not found:', i18nPath);
+      return res.status(404).send({ error: 'i18n file not found' });
+    }
+    
+    let content = fs.readFileSync(i18nPath, 'utf8');
+    const originalLength = content.length;
+    let totalRemoved = 0;
+    
+    // Pour chaque clé à supprimer, on enlève la ligne correspondante dans EN et FR
+    keys.forEach(key => {
+      // Échapper les caractères spéciaux dans la clé
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // Pattern 1: Clé sur une ligne complète
+      const patternFullLine = new RegExp(`^\\s*'${escapedKey}':\\s*'(?:[^'\\\\]|\\\\.)*',?\\s*$`, 'gm');
+      // Pattern 2: Clé au milieu d'une ligne (avec d'autres clés)
+      const patternInline = new RegExp(`\\s*'${escapedKey}':\\s*'(?:[^'\\\\]|\\\\.)*',\\s*`, 'g');
+      
+      const before = content.length;
+      
+      // Essayer d'abord le pattern de ligne complète
+      let newContent = content.replace(patternFullLine, '');
+      
+      // Si rien n'a été supprimé, essayer le pattern inline
+      if (newContent.length === before) {
+        newContent = content.replace(patternInline, '');
+      }
+      
+      content = newContent;
+      const after = content.length;
+      const removed = before - after;
+      totalRemoved += removed;
+      console.log(`Key ${key}: removed ${removed} characters (${removed > 0 ? 'SUCCESS' : 'NOT FOUND'})`);
+    });
+    
+    console.log(`Total removed: ${totalRemoved} characters from ${keys.length} keys`);
+    
+    console.log(`Total removed: ${totalRemoved} characters from ${keys.length} keys`);
+    
+    // Nettoyer les doubles sauts de ligne
+    content = content.replace(/\n\n\n+/g, '\n\n');
+    
+    if (totalRemoved === 0) {
+      console.warn('WARNING: No characters were removed. Keys might not exist or pattern did not match.');
+      return res.status(400).send({ 
+        error: 'no_keys_removed', 
+        message: 'Aucune clé trouvée dans le fichier. Vérifiez que les clés existent.',
+        keys: keys
+      });
+    }
+    
+    console.log(`Content changed from ${originalLength} to ${content.length} characters`);
+    fs.writeFileSync(i18nPath, content, 'utf8');
+    console.log('File saved successfully');
+    
+    res.send({ success: true, removedKeys: keys.length, charactersRemoved: totalRemoved });
+  } catch (err) {
+    console.error('Error removing translation keys:', err);
+    res.status(500).send({ error: 'failed to remove keys', message: err.message });
+  }
+});
+
+// --- Translation update endpoint ---
+app.post('/translations/update-keys', (req, res) => {
+  try {
+    const { updates, language } = req.body || {};
+    console.log(`Received request to update ${Object.keys(updates || {}).length} keys in language: ${language}`);
+    
+    if (!updates || typeof updates !== 'object') {
+      return res.status(400).send({ error: 'updates object required' });
+    }
+    
+    if (!language || (language !== 'en' && language !== 'fr')) {
+      return res.status(400).send({ error: 'language must be "en" or "fr"' });
+    }
+    
+    const i18nPath = path.join(__dirname, '..', 'src', 'i18n', 'index.js');
+    console.log('Reading file:', i18nPath);
+    
+    if (!fs.existsSync(i18nPath)) {
+      console.error('File not found:', i18nPath);
+      return res.status(404).send({ error: 'i18n file not found' });
+    }
+    
+    let content = fs.readFileSync(i18nPath, 'utf8');
+    let updatedCount = 0;
+    
+    // Pour chaque clé à mettre à jour
+    Object.entries(updates).forEach(([key, newValue]) => {
+      // Échapper les caractères spéciaux
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedValue = newValue.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      
+      // Pattern pour trouver la clé dans la section de la langue appropriée
+      // On cherche: 'key': 'old_value'
+      const pattern = new RegExp(`('${escapedKey}':\\s*)'(?:[^'\\\\]|\\\\.)*'`, 'g');
+      
+      const before = content;
+      content = content.replace(pattern, `$1'${escapedValue}'`);
+      
+      if (content !== before) {
+        updatedCount++;
+        console.log(`Key ${key}: UPDATED to "${newValue.substring(0, 50)}${newValue.length > 50 ? '...' : ''}"`);
+      } else {
+        console.log(`Key ${key}: NOT FOUND`);
+      }
+    });
+    
+    if (updatedCount === 0) {
+      console.warn('WARNING: No keys were updated.');
+      return res.status(400).send({ 
+        error: 'no_keys_updated', 
+        message: 'Aucune clé n\'a été mise à jour. Vérifiez que les clés existent.'
+      });
+    }
+    
+    fs.writeFileSync(i18nPath, content, 'utf8');
+    console.log(`File saved successfully. Updated ${updatedCount}/${Object.keys(updates).length} keys.`);
+    
+    res.send({ success: true, updatedKeys: updatedCount });
+  } catch (err) {
+    console.error('Error updating translation keys:', err);
+    res.status(500).send({ error: 'failed to update keys', message: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Config server listening on http://127.0.0.1:${PORT}`);
   console.log(`Config file: ${CONFIG_FILE}`);

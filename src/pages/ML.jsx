@@ -2,6 +2,7 @@ import React from 'react';
 import { Card } from '../components';
 import { Brain, CheckCircle, Play, RefreshCw } from 'lucide-react';
 import { AI_WEIGHTS } from '../utils/constants';
+import { t } from '../i18n';
 
 export default function MLView({ ctx }) {
   const { isSimulating, adaptiveMode, runSimulation } = ctx;

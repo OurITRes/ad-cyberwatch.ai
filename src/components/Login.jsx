@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Shield } from 'lucide-react';
 import * as authService from '../services/auth';
 import Register from './Register';
+import { t } from '../i18n';
 
 export default function Login({ onAuth, appName = 'CyberWatch', appSuffix = '.AI', appSubtitle = '' }) {
   const [id, setId] = useState('');
@@ -85,8 +86,8 @@ export default function Login({ onAuth, appName = 'CyberWatch', appSuffix = '.AI
             <div className="p-6 rounded bg-white">
               <h3 className="text-lg font-bold mb-4">Connexion locale</h3>
               <div className="space-y-2">
-                <input placeholder="Email ou UPN (ex: user@domain.com)" value={id} onChange={e => setId(e.target.value)} className="w-full p-2 border rounded" />
-                <input placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} type="password" className="w-full p-2 border rounded" />
+                <input placeholder={t('login.email', lang)} value={id} onChange={e => setId(e.target.value)} className="w-full p-2 border rounded" />
+                <input placeholder={t('login.password', lang)} value={password} onChange={e => setPassword(e.target.value)} type="password" className="w-full p-2 border rounded" />
                 <button onClick={handleLocalLogin} disabled={loading} className="w-full py-2 bg-indigo-600 text-white rounded">Se connecter</button>
               </div>
 

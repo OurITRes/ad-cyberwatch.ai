@@ -6,14 +6,15 @@ import { t } from '../i18n';
 
 export default function SettingsView({ ctx }) {
   const { config, setConfig, handleSaveConfig, isSaving, supportedLanguages, addSupportedLanguage, loadUsers, setActiveView, authService } = ctx;
+  const lang = config?.currentLanguage || 'fr';
   return (
     <div className="animate-in fade-in duration-300 space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 flex items-center">
-            <Cable className="mr-2 text-indigo-600" size={28} />Connecteurs
-          </h2>
-          <p className="text-slate-500 mt-1">Gérez les connexions aux sources de données</p>
+           <h2 className="text-2xl font-bold text-slate-800 flex items-center">
+             <Cable className="mr-2 text-indigo-600" size={28} />{t('connectors.title', lang)}
+           </h2>
+           <p className="text-slate-500 mt-1">{t('connectors.description', lang)}</p>
         </div>
         <div className="flex items-center space-x-4">
           <div className="space-y-1 mr-4"></div>
@@ -31,20 +32,20 @@ export default function SettingsView({ ctx }) {
               <Network className="text-purple-600" size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-800">BloodHound Enterprise</h3>
-              <p className="text-sm text-slate-500">Configuration de l'accès API pour la récupération des graphes d'attaque.</p>
+               <h3 className="text-lg font-bold text-slate-800">{t('connectors.bloodhound', lang)}</h3>
+               <p className="text-sm text-slate-500">{t('connectors.bloodhoundDescription', lang)}</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700">URL de l'API / Instance</label>
+               <label className="text-sm font-medium text-slate-700">{t('connectors.apiUrl', lang)}</label>
               <div className="relative">
                 <Server className="absolute left-3 top-2.5 text-slate-400" size={16} />
                 <input type="text" value={config.bhUrl} onChange={(e) => setConfig({...config, bhUrl: e.target.value})} className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm" />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700">Token API</label>
+               <label className="text-sm font-medium text-slate-700">API Token</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-2.5 text-slate-400" size={16} />
                 <input type="password" value={config.bhToken} onChange={(e) => setConfig({...config, bhToken: e.target.value})} className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm font-mono" />
@@ -59,20 +60,20 @@ export default function SettingsView({ ctx }) {
               <FileText className="text-blue-600" size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-800">PingCastle (Analyse Statique)</h3>
-              <p className="text-sm text-slate-500">Emplacement des rapports d'audit XML et des fichiers de règles.</p>
+               <h3 className="text-lg font-bold text-slate-800">{t('connectors.pingcastle', lang)}</h3>
+               <p className="text-sm text-slate-500">{t('connectors.pingcastleDescription', lang)}</p>
             </div>
           </div>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700">Dossier des Rapports XML</label>
+               <label className="text-sm font-medium text-slate-700">{t('connectors.xmlReportFolder', lang)}</label>
               <div className="relative">
                 <Folder className="absolute left-3 top-2.5 text-slate-400" size={16} />
                 <input type="text" value={config.pcReportPath} onChange={(e) => setConfig({...config, pcReportPath: e.target.value})} className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm font-mono" />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700">Fichier Catalog des Règles</label>
+               <label className="text-sm font-medium text-slate-700">{t('connectors.rulesCatalogFile', lang)}</label>
               <div className="relative">
                 <Database className="absolute left-3 top-2.5 text-slate-400" size={16} />
                 <input type="text" value={config.pcCatalogPath} onChange={(e) => setConfig({...config, pcCatalogPath: e.target.value})} className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm font-mono" />
@@ -87,13 +88,13 @@ export default function SettingsView({ ctx }) {
               <Clock className="text-emerald-600" size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-800">Fréquences de Synchronisation</h3>
-              <p className="text-sm text-slate-500">Intervalles de polling et de rafraîchissement des données.</p>
+               <h3 className="text-lg font-bold text-slate-800">{t('connectors.frequencies', lang)}</h3>
+               <p className="text-sm text-slate-500">{t('connectors.frequenciesDescription', lang)}</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700">Polling BloodHound (heures)</label>
+               <label className="text-sm font-medium text-slate-700">{t('connectors.bhPolling', lang)}</label>
               <div className="relative">
                 <RefreshCw className="absolute left-3 top-2.5 text-slate-400" size={16} />
                 <input 
@@ -105,9 +106,10 @@ export default function SettingsView({ ctx }) {
                 />
               </div>
               <p className="text-xs text-slate-500">Fréquence de récupération des données BloodHound</p>
+                         <p className="text-xs text-slate-500">{t('connectors.bhPollingDescription', lang)}</p>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700">Polling PingCastle (jours)</label>
+               <label className="text-sm font-medium text-slate-700">{t('connectors.pcPolling', lang)}</label>
               <div className="relative">
                 <RefreshCw className="absolute left-3 top-2.5 text-slate-400" size={16} />
                 <input 
@@ -119,9 +121,10 @@ export default function SettingsView({ ctx }) {
                 />
               </div>
               <p className="text-xs text-slate-500">Fréquence de lecture des rapports PingCastle</p>
+                         <p className="text-xs text-slate-500">{t('connectors.pcPollingDescription', lang)}</p>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700">Refresh Application (secondes)</label>
+               <label className="text-sm font-medium text-slate-700">{t('connectors.appRefresh', lang)}</label>
               <div className="relative">
                 <RefreshCw className="absolute left-3 top-2.5 text-slate-400" size={16} />
                 <input 
@@ -133,6 +136,7 @@ export default function SettingsView({ ctx }) {
                 />
               </div>
               <p className="text-xs text-slate-500">Intervalle de mise à jour de l'interface</p>
+                         <p className="text-xs text-slate-500">{t('connectors.appRefreshDescription', lang)}</p>
             </div>
           </div>
         </Card>

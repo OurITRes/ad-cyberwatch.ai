@@ -2,16 +2,18 @@ import React, { useState } from 'react';
 import { Card } from '../components';
 import { Radar, BarChart3, Settings } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar as RechartsRadar, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { t } from '../i18n';
 
 export default function CompliancePage({ ctx }) {
-  const { complianceScore } = ctx;
+  const { complianceScore, config } = ctx;
+  const lang = config?.currentLanguage || 'fr';
   const [selectedFramework, setSelectedFramework] = useState('nist');
 
   // Données pour les différents modèles de conformité
   const complianceFrameworks = {
     nist: {
       name: 'NIST CSF 2.0',
-      description: 'National Institute of Standards and Technology Cybersecurity Framework',
+      description: t('compliance.nistDescription', lang),
       color: '#3b82f6',
       data: [
         { category: 'Govern', score: 72, max: 100 },
@@ -24,7 +26,7 @@ export default function CompliancePage({ ctx }) {
     },
     cis: {
       name: 'CIS Controls v8',
-      description: 'Center for Internet Security Controls',
+      description: t('compliance.cisDescription', lang),
       color: '#10b981',
       data: [
         { category: 'Inventory', score: 75, max: 100 },
@@ -37,7 +39,7 @@ export default function CompliancePage({ ctx }) {
     },
     iso: {
       name: 'ISO/IEC 27001',
-      description: 'Information Security Management Systems',
+      description: t('compliance.isoDescription', lang),
       color: '#8b5cf6',
       data: [
         { category: 'Governance', score: 72, max: 100 },
@@ -48,8 +50,8 @@ export default function CompliancePage({ ctx }) {
       ]
     },
     custom: {
-      name: 'Modèle Personnalisé',
-      description: 'Basé sur votre contexte métier',
+      name: t('compliance.custom', lang),
+      description: t('compliance.customDescription', lang),
       color: '#f59e0b',
       data: [
         { category: 'Infrastructure', score: 68, max: 100 },
@@ -70,19 +72,19 @@ export default function CompliancePage({ ctx }) {
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 flex items-center">
-            <BarChart3 className="mr-2 text-blue-600" size={28} />
-            Radar de Conformité
-          </h2>
-          <p className="text-slate-500 mt-1">Analysez votre posture de conformité selon différents modèles</p>
+           <h2 className="text-2xl font-bold text-slate-800 flex items-center">
+             <BarChart3 className="mr-2 text-blue-600" size={28} />
+             {t('compliance.title', lang)}
+           </h2>
+           <p className="text-slate-500 mt-1">{t('compliance.description', lang)}</p>
         </div>
       </div>
 
       <Card className="border-t-4 border-t-blue-500">
         <div className="flex items-center justify-between mb-6 pb-6 border-b border-slate-200">
           <div>
-            <h3 className="text-lg font-bold text-slate-800">Sélectionnez votre modèle de conformité</h3>
-            <p className="text-sm text-slate-500 mt-1">Choisissez le framework qui correspond à vos besoins</p>
+             <h3 className="text-lg font-bold text-slate-800">{t('compliance.selectFramework', lang)}</h3>
+             <p className="text-sm text-slate-500 mt-1">{t('compliance.chooseFramework', lang)}</p>
           </div>
         </div>
 
@@ -109,10 +111,10 @@ export default function CompliancePage({ ctx }) {
           <Card className="h-full">
             <div className="flex justify-between items-center mb-6 pb-6 border-b border-slate-200">
               <div>
-                <h3 className="font-bold text-slate-700 flex items-center">
-                  <Radar className="mr-2 text-blue-500" size={20}/>
-                  {currentFramework.name} - Couverture
-                </h3>
+                 <h3 className="font-bold text-slate-700 flex items-center">
+                   <Radar className="mr-2 text-blue-500" size={20}/>
+                   {currentFramework.name} - {t('compliance.coverage', lang)}
+                 </h3>
                 <p className="text-xs text-slate-500 mt-1">{currentFramework.description}</p>
               </div>
             </div>
@@ -146,7 +148,7 @@ export default function CompliancePage({ ctx }) {
         <div className="space-y-6">
           <Card>
             <div className="text-center">
-              <p className="text-slate-500 text-sm font-medium">Score Global</p>
+               <p className="text-slate-500 text-sm font-medium">{t('compliance.overallScore', lang)}</p>
               <h3 className="text-5xl font-bold text-slate-800 mt-2">{overallScore}</h3>
               <p className="text-slate-500 text-sm mt-2">/ 100</p>
               <div className="mt-4 w-full bg-slate-100 rounded-full h-2">
@@ -162,7 +164,7 @@ export default function CompliancePage({ ctx }) {
           </Card>
 
           <Card>
-            <h3 className="font-bold text-slate-800 mb-4">Détails par catégorie</h3>
+             <h3 className="font-bold text-slate-800 mb-4">{t('compliance.categoryDetails', lang)}</h3>
             <div className="space-y-3">
               {currentFramework.data.map((item, idx) => (
                 <div key={idx}>

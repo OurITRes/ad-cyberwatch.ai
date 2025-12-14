@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card } from '../components';
 import { Zap } from 'lucide-react';
+import { t } from '../i18n';
 
 export default function IntegrationsPage({ ctx }) {
   return (

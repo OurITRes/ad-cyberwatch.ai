@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from '../components';
 import { Users, RefreshCw, Plus, Shield, ShieldCheck, Trash2, Award, X } from 'lucide-react';
+import { t } from '../i18n';
 
 export default function UsersPage({ ctx }) {
   const { users = [], loadUsers, setActiveView, authService, config, setConfig, handleSaveConfig } = ctx;
+  const lang = config?.currentLanguage || 'fr';
   const [roles, setRoles] = useState(config?.appRoles || ['admin', 'analyst', 'viewer']);
   const [newRole, setNewRole] = useState('');
 
@@ -16,11 +18,11 @@ export default function UsersPage({ ctx }) {
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 flex items-center">
-            <Users className="mr-2 text-indigo-600" size={28} />
-            Gestion des Utilisateurs
-          </h2>
-          <p className="text-slate-500 mt-1 text-sm">Utilisateurs locaux, rôles et authentification (SSO optionnel).</p>
+           <h2 className="text-2xl font-bold text-slate-800 flex items-center">
+             <Users className="mr-2 text-indigo-600" size={28} />
+             {t('users.title', lang)}
+           </h2>
+           <p className="text-slate-500 mt-1 text-sm">{t('users.description', lang)}</p>
         </div>
         <div className="flex items-center space-x-3">
           <button
@@ -28,35 +30,35 @@ export default function UsersPage({ ctx }) {
             className="inline-flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm"
           >
             <Plus size={16} />
-            <span>Créer un utilisateur</span>
+             <span>{t('users.create', lang)}</span>
           </button>
           <button
             onClick={() => loadUsers()}
             className="inline-flex items-center space-x-2 bg-slate-800 hover:bg-slate-900 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm"
           >
             <RefreshCw size={16} />
-            <span>Rafraîchir</span>
+             <span>{t('users.refresh', lang)}</span>
           </button>
         </div>
       </div>
 
       <Card className="border-t-4 border-t-blue-500">
         <div className="p-4">
-          <h3 className="text-lg font-bold text-slate-800 mb-3">Utilisateurs</h3>
+          <h3 className="text-lg font-bold text-slate-800 mb-3">{t('users.usersList', lang)}</h3>
           {users.length === 0 ? (
             <div className="text-sm text-slate-500 flex items-center space-x-2">
-              <ShieldCheck size={16} className="text-green-500" />
-              <span>Aucun utilisateur trouvé. Lancez un rafraîchissement ou créez un compte.</span>
+               <ShieldCheck size={16} className="text-green-500" />
+               <span>{t('users.noUsers', lang)}</span>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead className="text-xs text-slate-500 uppercase">
                   <tr>
-                    <th className="p-2 text-middle">ID</th>
-                    <th className="p-2 text-middle">Nom</th>
-                    <th className="p-2 text-middle">Rôles</th>
-                    <th className="p-2 text-middle">Auth</th>
+                     <th className="p-2 text-middle">ID</th>
+                     <th className="p-2 text-middle">{t('users.name', lang)}</th>
+                     <th className="p-2 text-middle">{t('users.roles', lang)}</th>
+                     <th className="p-2 text-middle">{t('users.auth', lang)}</th>
                     <th className="p-2 text-middle"></th>
                   </tr>
                 </thead>
@@ -76,7 +78,7 @@ export default function UsersPage({ ctx }) {
                           }}
                           className="p-1 border rounded text-sm bg-white"
                         >
-                          <option value="local">Local</option>
+                          <option value="local">{t('users.local', lang)}</option>
                           <option value="sso">SSO</option>
                         </select>
                       </td>
@@ -89,7 +91,7 @@ export default function UsersPage({ ctx }) {
                           }}
                         >
                           <Trash2 size={14} />
-                          <span>Suppr</span>
+                           <span>{t('users.delete', lang)}</span>
                         </button>
                       </td>
                     </tr>
@@ -107,8 +109,8 @@ export default function UsersPage({ ctx }) {
             <Award className="text-amber-600" size={24} />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-slate-800">Rôles de l'Application</h3>
-            <p className="text-sm text-slate-500">Définissez les rôles disponibles pour les utilisateurs</p>
+             <h3 className="text-lg font-bold text-slate-800">{t('users.applicationRoles', lang)}</h3>
+             <p className="text-sm text-slate-500">{t('users.defineRoles', lang)}</p>
           </div>
           <button
             onClick={async () => {
@@ -118,7 +120,7 @@ export default function UsersPage({ ctx }) {
             className="inline-flex items-center space-x-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm"
           >
             <Shield size={16} />
-            <span>Sauvegarder Rôles</span>
+             <span>{t('users.saveRoles', lang)}</span>
           </button>
         </div>
 
@@ -151,7 +153,7 @@ export default function UsersPage({ ctx }) {
                   setNewRole('');
                 }
               }}
-              placeholder="Nom du nouveau rôle (ex: security-admin)"
+              placeholder={t('users.newRoleName', lang)}
               className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm"
             />
             <button
@@ -164,13 +166,13 @@ export default function UsersPage({ ctx }) {
               className="inline-flex items-center space-x-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
             >
               <Plus size={16} />
-              <span>Ajouter</span>
+               <span>{t('users.addRole', lang)}</span>
             </button>
           </div>
 
           <p className="text-xs text-slate-500">
-            Les rôles définis ici seront disponibles lors de la création ou modification des utilisateurs.
-          </p>
+             {t('users.rolesInfo', lang)}
+           </p>
         </div>
       </Card>
     </div>

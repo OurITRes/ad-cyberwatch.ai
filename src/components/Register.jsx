@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Shield } from 'lucide-react';
 import * as authService from '../services/auth';
+import { t } from '../i18n';
 
 export default function Register({ onDone, appName = 'CyberWatch', appSuffix = '.AI' }) {
   const [id, setId] = useState('');
@@ -46,12 +47,12 @@ export default function Register({ onDone, appName = 'CyberWatch', appSuffix = '
         <div className="bg-white rounded shadow p-6">
           <h3 className="text-lg font-bold mb-4">Create local user</h3>
           <div className="space-y-3">
-            <input placeholder="Email or UPN" value={id} onChange={e => setId(e.target.value)} className="w-full p-2 border rounded" />
+            <input placeholder={t('register.email', lang)} value={id} onChange={e => setId(e.target.value)} className="w-full p-2 border rounded" />
             <div className="grid grid-cols-2 gap-2">
-              <input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full p-2 border rounded" />
-              <input placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-2 border rounded" />
+              <input placeholder={t('register.firstName', lang)} value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full p-2 border rounded" />
+              <input placeholder={t('register.lastName', lang)} value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-2 border rounded" />
             </div>
-            <input placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} type="password" className="w-full p-2 border rounded" />
+            <input placeholder={t('register.password', lang)} value={password} onChange={e => setPassword(e.target.value)} type="password" className="w-full p-2 border rounded" />
             <div>
               <label className="text-xs text-slate-500">Business role (optional)</label>
               <select value={businessRole} onChange={e => setBusinessRole(e.target.value)} className="w-full p-2 border rounded mt-1">

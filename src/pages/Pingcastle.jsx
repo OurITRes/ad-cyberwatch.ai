@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card } from '../components';
+import { t } from '../i18n';
 
 export default function PingcastlePage({ ctx }) {
   return (
