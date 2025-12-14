@@ -1,9 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../components';
-import { Users, RefreshCw, Plus, Shield, ShieldCheck, Trash2 } from 'lucide-react';
+import { Users, RefreshCw, Plus, Shield, ShieldCheck, Trash2, Award, X } from 'lucide-react';
 
 export default function UsersPage({ ctx }) {
-  const { users = [], loadUsers, setActiveView, authService } = ctx;
+  const { users = [], loadUsers, setActiveView, authService, config, setConfig, handleSaveConfig } = ctx;
+  const [roles, setRoles] = useState(config?.appRoles || ['admin', 'analyst', 'viewer']);
+  const [newRole, setNewRole] = useState('');
 
   useEffect(() => {
     loadUsers();
@@ -35,16 +37,6 @@ export default function UsersPage({ ctx }) {
             <RefreshCw size={16} />
             <span>Rafraîchir</span>
           </button>
-          <button
-            onClick={async () => {
-              const r = await authService.startSSO();
-              alert(JSON.stringify(r));
-            }}
-            className="inline-flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-lg text-sm font-medium border border-slate-200"
-          >
-            <Shield size={16} />
-            <span>Tester SSO</span>
-          </button>
         </div>
       </div>
 
@@ -61,11 +53,11 @@ export default function UsersPage({ ctx }) {
               <table className="min-w-full text-sm">
                 <thead className="text-xs text-slate-500 uppercase">
                   <tr>
-                    <th className="p-2 text-left">ID</th>
-                    <th className="p-2 text-left">Nom</th>
-                    <th className="p-2 text-left">Rôles</th>
-                    <th className="p-2 text-left">Auth</th>
-                    <th className="p-2 text-left"></th>
+                    <th className="p-2 text-middle">ID</th>
+                    <th className="p-2 text-middle">Nom</th>
+                    <th className="p-2 text-middle">Rôles</th>
+                    <th className="p-2 text-middle">Auth</th>
+                    <th className="p-2 text-middle"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -106,6 +98,79 @@ export default function UsersPage({ ctx }) {
               </table>
             </div>
           )}
+        </div>
+      </Card>
+
+      <Card className="border-t-4 border-t-amber-500">
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="p-2 bg-amber-100 rounded-lg">
+            <Award className="text-amber-600" size={24} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-slate-800">Rôles de l'Application</h3>
+            <p className="text-sm text-slate-500">Définissez les rôles disponibles pour les utilisateurs</p>
+          </div>
+          <button
+            onClick={async () => {
+              await setConfig({...config, appRoles: roles});
+              await handleSaveConfig();
+            }}
+            className="inline-flex items-center space-x-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm"
+          >
+            <Shield size={16} />
+            <span>Sauvegarder Rôles</span>
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {roles.map((role, idx) => (
+              <div key={idx} className="inline-flex items-center space-x-2 bg-slate-100 border border-slate-300 px-3 py-1.5 rounded-lg">
+                <Award size={14} className="text-amber-600" />
+                <span className="text-sm font-medium text-slate-700">{role}</span>
+                <button
+                  onClick={() => setRoles(roles.filter((_, i) => i !== idx))}
+                  className="text-slate-400 hover:text-red-600 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center space-x-2 pt-2 border-t border-slate-200">
+            <input
+              type="text"
+              value={newRole}
+              onChange={(e) => setNewRole(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && newRole.trim()) {
+                  if (!roles.includes(newRole.trim())) {
+                    setRoles([...roles, newRole.trim()]);
+                  }
+                  setNewRole('');
+                }
+              }}
+              placeholder="Nom du nouveau rôle (ex: security-admin)"
+              className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm"
+            />
+            <button
+              onClick={() => {
+                if (newRole.trim() && !roles.includes(newRole.trim())) {
+                  setRoles([...roles, newRole.trim()]);
+                  setNewRole('');
+                }
+              }}
+              className="inline-flex items-center space-x-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+            >
+              <Plus size={16} />
+              <span>Ajouter</span>
+            </button>
+          </div>
+
+          <p className="text-xs text-slate-500">
+            Les rôles définis ici seront disponibles lors de la création ou modification des utilisateurs.
+          </p>
         </div>
       </Card>
     </div>

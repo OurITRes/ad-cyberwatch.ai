@@ -1,11 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '../components';
-import { Settings as SettingsIcon, MonitorCog, RefreshCw, Save, Globe, Users, Ticket, Folder, Database, Server, Lock, FileText, Network } from 'lucide-react';
+import { Settings as SettingsIcon, MonitorCog, RefreshCw, Save, Globe, Users, Ticket, Folder, Database, Server, Lock, FileText, Network, Shield, Key, Link } from 'lucide-react';
 import ResponsiveGuard from '../components/ResponsiveGuard';
 import { t } from '../i18n';
 
 export default function AutomationPage({ ctx }) {
   const { config, setConfig, handleSaveConfig, isSaving, supportedLanguages, addSupportedLanguage, loadUsers, setActiveView, authService } = ctx;
+  const [ssoConfig, setSsoConfig] = useState({
+    provider: config?.ssoProvider || 'azuread',
+    clientId: config?.ssoClientId || '',
+    tenantId: config?.ssoTenantId || '',
+    redirectUri: config?.ssoRedirectUri || ''
+  });
   return (
     <div className="animate-in fade-in duration-300 space-y-8">
       <div className="flex items-center justify-between">
@@ -113,6 +119,115 @@ export default function AutomationPage({ ctx }) {
                 </div>
                 </div>
             </div>
+        </Card>
+
+        <Card className="border-t-4 border-t-purple-500">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Shield className="text-purple-600" size={24} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-slate-800">Configuration SSO</h3>
+              <p className="text-sm text-slate-500">Paramètres d'authentification unique (Single Sign-On)</p>
+            </div>
+            <button
+              onClick={async () => {
+                await setConfig({
+                  ...config,
+                  ssoProvider: ssoConfig.provider,
+                  ssoClientId: ssoConfig.clientId,
+                  ssoTenantId: ssoConfig.tenantId,
+                  ssoRedirectUri: ssoConfig.redirectUri
+                });
+                await handleSaveConfig();
+              }}
+              className="inline-flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm"
+            >
+              <Shield size={16} />
+              <span>Sauvegarder SSO</span>
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700">Provider SSO</label>
+                <div className="relative">
+                  <Link className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                  <select
+                    value={ssoConfig.provider}
+                    onChange={(e) => setSsoConfig({...ssoConfig, provider: e.target.value})}
+                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm bg-white"
+                  >
+                    <option value="azuread">Azure AD / Entra ID</option>
+                    <option value="okta">Okta</option>
+                    <option value="google">Google Workspace</option>
+                    <option value="saml">SAML 2.0</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700">Client ID / Application ID</label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                  <input
+                    type="text"
+                    value={ssoConfig.clientId}
+                    onChange={(e) => setSsoConfig({...ssoConfig, clientId: e.target.value})}
+                    placeholder="00000000-0000-0000-0000-000000000000"
+                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700">Tenant ID / Organization ID</label>
+                <div className="relative">
+                  <Server className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                  <input
+                    type="text"
+                    value={ssoConfig.tenantId}
+                    onChange={(e) => setSsoConfig({...ssoConfig, tenantId: e.target.value})}
+                    placeholder="00000000-0000-0000-0000-000000000000"
+                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700">Redirect URI</label>
+                <div className="relative">
+                  <Link className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                  <input
+                    type="text"
+                    value={ssoConfig.redirectUri}
+                    onChange={(e) => setSsoConfig({...ssoConfig, redirectUri: e.target.value})}
+                    placeholder="http://localhost:5173/auth/callback"
+                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+              <p className="text-xs text-slate-500">
+                Une fois configuré, utilisez le bouton "Tester SSO" pour vérifier la connexion.
+              </p>
+              <button
+                onClick={async () => {
+                  const r = await authService.startSSO();
+                  alert(JSON.stringify(r, null, 2));
+                }}
+                className="inline-flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-lg text-sm font-medium border border-slate-200"
+              >
+                <Shield size={16} />
+                <span>Tester SSO</span>
+              </button>
+            </div>
+          </div>
         </Card>
 
       </div>

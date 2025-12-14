@@ -13,7 +13,7 @@ import DashboardPage from './pages/Dashboard';
 import RemediationPage from './pages/Remediation';
 import DetailsPage from './pages/Details';
 import MLPage from './pages/ML';
-import SettingsPage from './pages/Settings';
+import ConnectorsPage from './pages/Connectors';
 import ProfilePage from './pages/Profile';
 import CompliancePage from './pages/Compliance';
 import PingcastlePage from './pages/Pingcastle';
@@ -89,7 +89,7 @@ export default function AdSecurityOpsCenter() {
   }, [config?.defaultUserName]);
 
   useEffect(() => {
-    if (activeView === 'settings' || activeView === 'userspage') {
+    if (activeView === 'connectors' || activeView === 'userspage') {
       loadUsers();
     }
   }, [activeView]);
@@ -168,7 +168,7 @@ export default function AdSecurityOpsCenter() {
       <Register
         onDone={async () => {
           await loadUsers();
-          setActiveView('settings');
+          setActiveView('connectors');
         }}
         appName={config.appName}
         appSuffix={config.appSuffix}
@@ -260,14 +260,14 @@ export default function AdSecurityOpsCenter() {
           <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mt-8 mb-2">Paramètres</p>
           {[
             { id: 'automation', icon: ArrowDownUp, label: 'Intégrations' },
-            { id: 'settings', icon: Cable, label: 'Connecteurs' },
+            { id: 'connectors', icon: Cable, label: 'Connecteurs' },
             { id: 'userspage', icon: Users, label: 'Utilisateurs' },
             { id: 'languages', icon: Globe, label: 'Langues' },
           ].map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveView(item.id)}
-              className={`w-full flex items-center space-x-3 px-4 py-1. rounded-lg transition-all duration-200 group ${
+              className={`w-full flex items-center space-x-3 px-4 py-1 rounded-lg transition-all duration-200 group ${
                 activeView === item.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
               }`}
             >
@@ -357,11 +357,11 @@ export default function AdSecurityOpsCenter() {
               <ChevronRight size={14} />
               <span className="text-slate-800 font-medium capitalize">
                 {activeView === 'ml' ? 'Automation — IA'
-                : activeView === 'settings' ? 'Paramètres'
-                : activeView === 'compliance' ? 'Conformité — Radar'
-                : activeView === 'pingcastle' ? 'Conformité — PingCastle'
-                : activeView === 'bloodhound' ? 'Conformité — BloodHound'
-                : activeView === 'rosetta' ? 'Conformité — Pierre de Rosette'
+                : activeView === 'connectors' ? 'Paramètres'
+                : activeView === 'compliance' ? 'Compliance Radar'
+                : activeView === 'pingcastle' ? 'PingCastle'
+                : activeView === 'bloodhound' ? 'BloodHound'
+                : activeView === 'rosetta' ? 'Rosetta Stone'
                 : activeView === 'automation' ? 'Automation — Intégrations & Approbations'
                 : activeView === 'userspage' ? 'Paramètres — Utilisateurs'
                 : activeView === 'languages' ? 'Paramètres — Langues'
@@ -374,7 +374,7 @@ export default function AdSecurityOpsCenter() {
               {activeView === 'details' && 'Investigation & Graphe'}
               {activeView === 'ml' && 'Configuration du Modèle Adaptatif'}
               {activeView === 'remediation' && "Plan d'Amélioration Continue"}
-              {activeView === 'settings' && 'Paramètres & Connecteurs'}
+              {activeView === 'connectors' && 'Connecteurs'}
               {activeView === 'compliance' && 'Radar de Conformité'}
               {activeView === 'pingcastle' && 'Vue PingCastle'}
               {activeView === 'bloodhound' && 'Vue BloodHound'}
@@ -402,7 +402,7 @@ export default function AdSecurityOpsCenter() {
         {activeView === 'details' && <DetailsPage ctx={ctx} />}
         {activeView === 'remediation' && <RemediationPage ctx={ctx} />}
         {activeView === 'ml' && <MLPage ctx={ctx} />}
-        {activeView === 'settings' && <SettingsPage ctx={ctx} />}
+        {activeView === 'connectors' && <ConnectorsPage ctx={ctx} />}
         {activeView === 'compliance' && <CompliancePage ctx={ctx} />}
         {activeView === 'pingcastle' && <PingcastlePage ctx={ctx} />}
         {activeView === 'bloodhound' && <BloodhoundPage ctx={ctx} />}

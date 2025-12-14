@@ -21,7 +21,16 @@
     "snToken": "********************",
     "autoApprovalThreshold": "Low",
     "defaultAssignee": "SOC_L1",
-    "requireCabApproval": true
+    "requireCabApproval": true,
+    "appRoles": [
+      "admin",
+      "analyst",
+      "viewer"
+    ],
+    "ssoProvider": "azuread",
+    "ssoClientId": "",
+    "ssoTenantId": "",
+    "ssoRedirectUri": ""
   },
   "supportedLanguages": [
     "en",
