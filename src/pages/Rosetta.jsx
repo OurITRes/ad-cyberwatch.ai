@@ -1,0 +1,15 @@
+import React from 'react';
+import { Card } from '../components';
+
+export default function RosettaPage({ ctx }) {
+  return (
+    <div className="space-y-6">
+      <Card>
+        <div className="p-4">
+          <h3 className="text-lg font-bold text-slate-800">Pierre de Rosette</h3>
+          <p className="text-slate-500 text-sm mt-2">Contenu à intégrer (à venir).</p>
+        </div>
+      </Card>
+    </div>
+  );
+}

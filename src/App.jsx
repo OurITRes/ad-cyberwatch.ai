@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Shield, BarChart2, Network, CheckCircle, Brain, Settings, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Shield, BarChart2, Network, CheckCircle, Brain, Settings, ChevronRight, AlertTriangle, Users, Globe, Radar, Compass, LayoutDashboard, ScanEye, ScanSearch, Cable, ArrowDown, ArrowDownUp } from 'lucide-react';
 
 import { useAppState, useRemediationActions, useConfig, useMLSimulation } from './hooks';
 import { t } from './i18n';
@@ -15,6 +15,13 @@ import DetailsPage from './pages/Details';
 import MLPage from './pages/ML';
 import SettingsPage from './pages/Settings';
 import ProfilePage from './pages/Profile';
+import CompliancePage from './pages/Compliance';
+import PingcastlePage from './pages/Pingcastle';
+import BloodhoundPage from './pages/Bloodhound';
+import RosettaPage from './pages/Rosetta';
+import AutomationPage from './pages/Automation';
+import UsersPage from './pages/Users';
+import LanguagesPage from './pages/Languages';
 
 export default function AdSecurityOpsCenter() {
   const {
@@ -82,7 +89,7 @@ export default function AdSecurityOpsCenter() {
   }, [config?.defaultUserName]);
 
   useEffect(() => {
-    if (activeView === 'settings') {
+    if (activeView === 'settings' || activeView === 'userspage') {
       loadUsers();
     }
   }, [activeView]);
@@ -211,17 +218,18 @@ export default function AdSecurityOpsCenter() {
           </div>
         </div>
 
-        <div className="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
+        <div className="flex-1 py-1 px-4 space-y-0.5 overflow-y-auto">
           <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Opérations</p>
           {[
-            { id: 'dashboard', icon: BarChart2, label: 'Command Center' },
+            { id: 'dashboard', icon: LayoutDashboard , label: 'Command Center' },
             { id: 'details', icon: Network, label: 'Investigation & Graphe' },
             { id: 'remediation', icon: CheckCircle, label: 'Plan de Remédiation' },
+            { id: 'ml', icon: Brain, label: 'Moteur IA' },
           ].map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveView(item.id)}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
+              className={`w-full flex items-center space-x-3 px-4 py-1.5 rounded-lg transition-all duration-200 group ${
                 activeView === item.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
               }`}
             >
@@ -230,15 +238,36 @@ export default function AdSecurityOpsCenter() {
             </button>
           ))}
 
-          <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mt-8 mb-2">Intelligence</p>
+          <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mt-8 mb-2">Conformité</p>
           {[
-            { id: 'ml', icon: Brain, label: 'Moteur IA & Modèle' },
-            { id: 'settings', icon: Settings, label: 'Paramètres & Connecteurs' },
+            { id: 'compliance', icon: Radar, label: 'Radar de Conformité' },
+            { id: 'pingcastle', icon: ScanSearch , label: 'PingCastle' },
+            { id: 'bloodhound', icon: ScanEye, label: 'BloodHound' },
+            { id: 'rosetta', icon: Compass, label: 'Pierre de Rosette' },
           ].map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveView(item.id)}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
+              className={`w-full flex items-center space-x-3 px-4 py-1.5 rounded-lg transition-all duration-200 group ${
+                activeView === item.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
+              }`}
+            >
+              <item.icon size={20} className={activeView === item.id ? 'text-white' : 'text-slate-500 group-hover:text-white'} />
+              <span className="font-medium">{item.label}</span>
+            </button>
+          ))}
+
+          <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mt-8 mb-2">Paramètres</p>
+          {[
+            { id: 'automation', icon: ArrowDownUp, label: 'Intégrations' },
+            { id: 'settings', icon: Cable, label: 'Connecteurs' },
+            { id: 'userspage', icon: Users, label: 'Utilisateurs' },
+            { id: 'languages', icon: Globe, label: 'Langues' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveView(item.id)}
+              className={`w-full flex items-center space-x-3 px-4 py-1. rounded-lg transition-all duration-200 group ${
                 activeView === item.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
               }`}
             >
@@ -327,13 +356,17 @@ export default function AdSecurityOpsCenter() {
               <span>Opérations</span>
               <ChevronRight size={14} />
               <span className="text-slate-800 font-medium capitalize">
-                {activeView === 'ml'
-                  ? 'Intelligence Artificielle'
-                  : activeView === 'settings'
-                  ? 'Configuration'
-                  : activeView === 'profile'
-                  ? 'Profil'
-                  : activeView}
+                {activeView === 'ml' ? 'Automation — IA'
+                : activeView === 'settings' ? 'Paramètres'
+                : activeView === 'compliance' ? 'Conformité — Radar'
+                : activeView === 'pingcastle' ? 'Conformité — PingCastle'
+                : activeView === 'bloodhound' ? 'Conformité — BloodHound'
+                : activeView === 'rosetta' ? 'Conformité — Pierre de Rosette'
+                : activeView === 'automation' ? 'Automation — Intégrations & Approbations'
+                : activeView === 'userspage' ? 'Paramètres — Utilisateurs'
+                : activeView === 'languages' ? 'Paramètres — Langues'
+                : activeView === 'profile' ? 'Profil'
+                : activeView}
               </span>
             </div>
             <h2 className="text-xl font-bold text-slate-800">
@@ -342,6 +375,13 @@ export default function AdSecurityOpsCenter() {
               {activeView === 'ml' && 'Configuration du Modèle Adaptatif'}
               {activeView === 'remediation' && "Plan d'Amélioration Continue"}
               {activeView === 'settings' && 'Paramètres & Connecteurs'}
+              {activeView === 'compliance' && 'Radar de Conformité'}
+              {activeView === 'pingcastle' && 'Vue PingCastle'}
+              {activeView === 'bloodhound' && 'Vue BloodHound'}
+              {activeView === 'rosetta' && 'Pierre de Rosette'}
+              {activeView === 'automation' && 'Intégrations & Approbations'}
+              {activeView === 'userspage' && 'Gestion des Utilisateurs'}
+              {activeView === 'languages' && 'Langues'}
               {activeView === 'profile' && 'Mon Profil'}
             </h2>
           </div>
@@ -363,6 +403,13 @@ export default function AdSecurityOpsCenter() {
         {activeView === 'remediation' && <RemediationPage ctx={ctx} />}
         {activeView === 'ml' && <MLPage ctx={ctx} />}
         {activeView === 'settings' && <SettingsPage ctx={ctx} />}
+        {activeView === 'compliance' && <CompliancePage ctx={ctx} />}
+        {activeView === 'pingcastle' && <PingcastlePage ctx={ctx} />}
+        {activeView === 'bloodhound' && <BloodhoundPage ctx={ctx} />}
+        {activeView === 'rosetta' && <RosettaPage ctx={ctx} />}
+        {activeView === 'automation' && <AutomationPage ctx={ctx} />}
+        {activeView === 'userspage' && <UsersPage ctx={ctx} />}
+        {activeView === 'languages' && <LanguagesPage ctx={ctx} />}
         {activeView === 'profile' && <ProfilePage ctx={ctx} />}
       </main>
     </div>

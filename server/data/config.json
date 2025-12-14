@@ -3,20 +3,28 @@
     "appName": "CyberWatch",
     "appSuffix": ".AI",
     "appSubtitle": "AD Defense Platform",
-    "language": "fr"
+    "language": "fr",
+    "defaultLanguage": "fr",
+    "bhUrl": "https://bloodhound.corp.internal",
+    "bhToken": "********************",
+    "pcReportPath": "C:\\Reports\\PingCastle\\",
+    "pcCatalogPath": "C:\\PingCastle\\Rules\\Catalog.xml",
+    "nistEnabled": true,
+    "cisEnabled": true,
+    "customEnabled": true,
+    "jiraUrl": "https://jira.company.com",
+    "jiraUser": "svc_cyberwatch",
+    "jiraToken": "********************",
+    "jiraProject": "SEC",
+    "snUrl": "https://company.service-now.com",
+    "snUser": "mid_server_user",
+    "snToken": "********************",
+    "autoApprovalThreshold": "Low",
+    "defaultAssignee": "SOC_L1",
+    "requireCabApproval": true
   },
   "supportedLanguages": [
-    "fr",
-    "en"
-  ],
-  "roles": [
-    {
-      "id": "admin",
-      "label": "Administrator"
-    },
-    {
-      "id": "user",
-      "label": "User"
-    }
+    "en",
+    "fr"
   ]
 }

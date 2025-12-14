@@ -1,7 +1,7 @@
 const TRANSLATIONS = {
   en: {
     'app.subtitle': 'AD Defense Platform',
-    'settings.title': 'Settings & Connectors',
+    'settings.title': 'Connectors',
     'settings.save': 'Save',
     'settings.appNameLabel': 'Application Name',
     'settings.languageLabel': 'Language',
@@ -14,7 +14,7 @@ const TRANSLATIONS = {
   },
   fr: {
     'app.subtitle': 'Plateforme de Défense AD',
-    'settings.title': 'Paramètres & Connecteurs',
+    'settings.title': 'Connecteurs',
     'settings.save': 'Sauvegarder',
     'settings.appNameLabel': "Nom de l'application",
     'settings.languageLabel': 'Langue',

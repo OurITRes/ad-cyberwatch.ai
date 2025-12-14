@@ -17,7 +17,7 @@ export const NavigationHeader = ({ activeView }) => (
          {activeView === 'details' && 'Investigation & Graphe'}
          {activeView === 'ml' && 'Configuration du Modèle Adaptatif'}
          {activeView === 'remediation' && 'Plan d\'Amélioration Continue'}
-         {activeView === 'settings' && 'Paramètres & Connecteurs'}
+         {activeView === 'settings' && 'Connecteurs'}
       </h2>
     </div>
   </header>
