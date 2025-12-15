@@ -9,7 +9,7 @@ export const useComplianceEngine = (allFindings: UnifiedFinding[]) => {
   // Fonction pour calculer le score d'une catégorie (ex: NIST Protect)
   const calculateCategoryRisk = (categoryIds: string[], frameworkKey: 'nist_csf' | 'cis_v8') => {
     const relevantFindings = allFindings.filter(f => 
-      f.complianceTags[frameworkKey]?.some(tag => categoryIds.includes(tag))
+      f.complianceReferences?.some(ref => ref.framework === frameworkKey && categoryIds.includes(ref.controlId))
     );
 
     // Logique de Scoring "Intelligent" (Recommendation B)
