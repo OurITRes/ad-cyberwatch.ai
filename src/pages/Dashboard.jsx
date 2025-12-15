@@ -8,7 +8,7 @@ import { t } from '../i18n';
 
 export default function DashboardView({ ctx }) {
   const { complianceScore, remediationValidated, setActiveView, setSelectedRisk, config } = ctx;
-  const lang = config?.currentLanguage || 'fr';
+  const lang = config?.language || 'fr';
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -84,7 +84,7 @@ export default function DashboardView({ ctx }) {
                  <Activity className="mr-2 text-blue-500" size={20}/>
                  {t('dashboard.evolution', lang)}
                </h3>
-               <select className="text-sm border-slate-200 rounded-md shadow-sm" aria-label="Période de temps">
+               <select className="text-sm border-slate-200 rounded-md shadow-sm" aria-label={t('dashboard.timePeriod', lang)}>
                  <option>{t('dashboard.lastMonths', lang)}</option>
                  <option>{t('dashboard.thisYear', lang)}</option>
                </select>
@@ -156,16 +156,16 @@ export default function DashboardView({ ctx }) {
             <div style={{ display: 'block', height: '288px', width: '100%', overflow: 'hidden' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="70%" data={[
-                  { category: 'Identify', score: 85, max: 100 },
-                  { category: 'Protect', score: 45, max: 100 },
-                  { category: 'Detect', score: 60, max: 100 },
-                  { category: 'Respond', score: 70, max: 100 },
-                  { category: 'Recover', score: 90, max: 100 },
+                  { category: t('compliance.identify', lang), score: 85, max: 100 },
+                  { category: t('compliance.protect', lang), score: 45, max: 100 },
+                  { category: t('compliance.detect', lang), score: 60, max: 100 },
+                  { category: t('compliance.respond', lang), score: 70, max: 100 },
+                  { category: t('compliance.recover', lang), score: 90, max: 100 },
                 ]}>
                   <PolarGrid />
                   <PolarAngleAxis dataKey="category" tick={{ fill: '#64748b', fontSize: 11 }} />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false}/>
-                  <Radar name="Actuel" dataKey="score" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
+                  <Radar name={t('dashboard.current', lang)} dataKey="score" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
                   <Legend />
                 </RadarChart>
               </ResponsiveContainer>
@@ -182,7 +182,7 @@ export default function DashboardView({ ctx }) {
                  <h3 className="font-bold">{t('dashboard.aiInsight', lang)}</h3>
               </div>
               <p className="text-sm text-indigo-100 mb-4 leading-relaxed">
-                 {lang === 'fr' ? "L'analyse des derniers chemins BloodHound montre que le correctif du groupe " : "Analysis of recent BloodHound paths shows that fixing the "}<strong>{t('dashboard.serviceAccounts', lang)}</strong>{lang === 'fr' ? " réduirait votre exposition globale de " : " group would reduce your overall exposure by "}<strong>18%</strong>.
+                 {t('dashboard.aiInsightText1', lang)}<strong>{t('dashboard.serviceAccounts', lang)}</strong>{t('dashboard.aiInsightText2', lang)}<strong>18%</strong>.
               </p>
               <button
                 onClick={() => setActiveView('ml')}

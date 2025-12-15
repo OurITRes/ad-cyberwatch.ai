@@ -12,6 +12,17 @@ export default function AutomationPage({ ctx }) {
     tenantId: config?.ssoTenantId || '',
     redirectUri: config?.ssoRedirectUri || ''
   });
+  
+  // Sync ssoConfig with config when config changes
+  React.useEffect(() => {
+    setSsoConfig({
+      provider: config?.ssoProvider || 'azuread',
+      clientId: config?.ssoClientId || '',
+      tenantId: config?.ssoTenantId || '',
+      redirectUri: config?.ssoRedirectUri || ''
+    });
+  }, [config?.ssoProvider, config?.ssoClientId, config?.ssoTenantId, config?.ssoRedirectUri]);
+  
   return (
     <div className="animate-in fade-in duration-300 space-y-8">
       <div className="flex items-center justify-between">

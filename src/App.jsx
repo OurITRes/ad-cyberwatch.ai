@@ -44,6 +44,7 @@ export default function AdSecurityOpsCenter() {
   const { config, setConfig, handleSaveConfig, isSaving, supportedLanguages, addSupportedLanguage } = useConfig();
   const { isSimulating, runSimulation } = useMLSimulation(setAdaptiveMode);
 
+  const lang = config?.language || 'fr';
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [users, setUsers] = useState([]);
@@ -219,12 +220,12 @@ export default function AdSecurityOpsCenter() {
         </div>
 
         <div className="flex-1 py-1 px-4 space-y-0.5 overflow-y-auto">
-          <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Opérations</p>
+          <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t('app.operations', lang)}</p>
           {[
-            { id: 'dashboard', icon: LayoutDashboard , label: 'Command Center' },
-            { id: 'details', icon: Network, label: 'Investigation & Graphe' },
-            { id: 'remediation', icon: CheckCircle, label: 'Plan de Remédiation' },
-            { id: 'ml', icon: Brain, label: 'Moteur IA' },
+            { id: 'dashboard', icon: LayoutDashboard , label: t('menu.command', lang) },
+            { id: 'details', icon: Network, label: t('menu.details', lang) },
+            { id: 'remediation', icon: CheckCircle, label: t('menu.remediation', lang) },
+            { id: 'ml', icon: Brain, label: t('menu.ml', lang) },
           ].map((item) => (
             <button
               key={item.id}
@@ -238,12 +239,12 @@ export default function AdSecurityOpsCenter() {
             </button>
           ))}
 
-          <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mt-8 mb-2">Conformité</p>
+          <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mt-8 mb-2">{t('app.compliance', lang)}</p>
           {[
-            { id: 'compliance', icon: Radar, label: 'Radar de Conformité' },
-            { id: 'pingcastle', icon: ScanSearch , label: 'PingCastle' },
-            { id: 'bloodhound', icon: ScanEye, label: 'BloodHound' },
-            { id: 'rosetta', icon: Compass, label: 'Pierre de Rosette' },
+            { id: 'compliance', icon: Radar, label: t('menu.compliance', lang) },
+            { id: 'pingcastle', icon: ScanSearch , label: t('menu.pingcastle', lang) },
+            { id: 'bloodhound', icon: ScanEye, label: t('menu.bloodhound', lang) },
+            { id: 'rosetta', icon: Compass, label: t('menu.rosetta', lang) },
           ].map((item) => (
             <button
               key={item.id}
@@ -257,12 +258,12 @@ export default function AdSecurityOpsCenter() {
             </button>
           ))}
 
-          <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mt-8 mb-2">Paramètres</p>
+          <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mt-8 mb-2">{t('app.settings', lang)}</p>
           {[
-            { id: 'automation', icon: ArrowDownUp, label: 'Intégrations' },
-            { id: 'connectors', icon: Cable, label: 'Connecteurs' },
-            { id: 'userspage', icon: Users, label: 'Utilisateurs' },
-            { id: 'languages', icon: Globe, label: 'Langues' },
+            { id: 'automation', icon: ArrowDownUp, label: t('menu.automation', lang) },
+            { id: 'connectors', icon: Cable, label: t('menu.connectors', lang) },
+            { id: 'userspage', icon: Users, label: t('menu.users', lang) },
+            { id: 'languages', icon: Globe, label: t('menu.languages', lang) },
           ].map((item) => (
             <button
               key={item.id}
@@ -317,7 +318,7 @@ export default function AdSecurityOpsCenter() {
             <button
               onClick={() => setActiveView('profile')}
               className="flex-shrink-0 text-slate-500 hover:text-white hover:bg-slate-700 rounded p-1 transition-colors"
-              title="Accéder au profil"
+              title={t('app.profileAccess', lang)}
             >
               <span className="text-lg font-bold">⋯</span>
             </button>
@@ -331,7 +332,7 @@ export default function AdSecurityOpsCenter() {
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white rounded-t-lg"
                 >
-                  Mon Profil
+                  {t('app.myProfile', lang)}
                 </button>
                 <button
                   onClick={(e) => {
@@ -341,7 +342,7 @@ export default function AdSecurityOpsCenter() {
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-600/20 hover:text-red-300 rounded-b-lg border-t border-slate-700"
                 >
-                  Déconnexion
+                  {t('app.logout', lang)}
                 </button>
               </div>
             )}
@@ -353,45 +354,45 @@ export default function AdSecurityOpsCenter() {
         <header className="mb-8 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200 sticky top-4 z-10">
           <div>
             <div className="flex items-center space-x-2 text-slate-400 text-sm mb-1">
-              <span>Opérations</span>
+              <span>{t('app.operations', lang)}</span>
               <ChevronRight size={14} />
               <span className="text-slate-800 font-medium capitalize">
-                {activeView === 'ml' ? 'Automation — IA'
-                : activeView === 'connectors' ? 'Paramètres'
-                : activeView === 'compliance' ? 'Compliance Radar'
-                : activeView === 'pingcastle' ? 'PingCastle'
-                : activeView === 'bloodhound' ? 'BloodHound'
-                : activeView === 'rosetta' ? 'Rosetta Stone'
-                : activeView === 'automation' ? 'Automation — Intégrations & Approbations'
-                : activeView === 'userspage' ? 'Paramètres — Utilisateurs'
-                : activeView === 'languages' ? 'Paramètres — Langues'
-                : activeView === 'profile' ? 'Profil'
+                {activeView === 'ml' ? t('breadcrumb.ml', lang)
+                : activeView === 'connectors' ? t('breadcrumb.connectors', lang)
+                : activeView === 'compliance' ? t('breadcrumb.compliance', lang)
+                : activeView === 'pingcastle' ? t('breadcrumb.pingcastle', lang)
+                : activeView === 'bloodhound' ? t('breadcrumb.bloodhound', lang)
+                : activeView === 'rosetta' ? t('breadcrumb.rosetta', lang)
+                : activeView === 'automation' ? t('breadcrumb.automation', lang)
+                : activeView === 'userspage' ? t('breadcrumb.users', lang)
+                : activeView === 'languages' ? t('breadcrumb.languages', lang)
+                : activeView === 'profile' ? t('breadcrumb.profile', lang)
                 : activeView}
               </span>
             </div>
             <h2 className="text-xl font-bold text-slate-800">
-              {activeView === 'dashboard' && "Vue d'Ensemble de la Posture"}
-              {activeView === 'details' && 'Investigation & Graphe'}
-              {activeView === 'ml' && 'Configuration du Modèle Adaptatif'}
-              {activeView === 'remediation' && "Plan d'Amélioration Continue"}
-              {activeView === 'connectors' && 'Connecteurs'}
-              {activeView === 'compliance' && 'Radar de Conformité'}
-              {activeView === 'pingcastle' && 'Vue PingCastle'}
-              {activeView === 'bloodhound' && 'Vue BloodHound'}
-              {activeView === 'rosetta' && 'Pierre de Rosette'}
-              {activeView === 'automation' && 'Intégrations & Approbations'}
-              {activeView === 'userspage' && 'Gestion des Utilisateurs'}
-              {activeView === 'languages' && 'Langues'}
-              {activeView === 'profile' && 'Mon Profil'}
+              {activeView === 'dashboard' && t('pageTitle.dashboard', lang)}
+              {activeView === 'details' && t('pageTitle.details', lang)}
+              {activeView === 'ml' && t('pageTitle.ml', lang)}
+              {activeView === 'remediation' && t('pageTitle.remediation', lang)}
+              {activeView === 'connectors' && t('pageTitle.connectors', lang)}
+              {activeView === 'compliance' && t('pageTitle.compliance', lang)}
+              {activeView === 'pingcastle' && t('pageTitle.pingcastle', lang)}
+              {activeView === 'bloodhound' && t('pageTitle.bloodhound', lang)}
+              {activeView === 'rosetta' && t('pageTitle.rosetta', lang)}
+              {activeView === 'automation' && t('pageTitle.automation', lang)}
+              {activeView === 'userspage' && t('pageTitle.users', lang)}
+              {activeView === 'languages' && t('pageTitle.languages', lang)}
+              {activeView === 'profile' && t('pageTitle.profile', lang)}
             </h2>
           </div>
 
           <div className="flex items-center space-x-4">
             <div className="hidden md:flex items-center px-3 py-1.5 bg-slate-100 rounded-lg text-sm font-medium text-slate-600 border border-slate-200">
               <span className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
-              PingCastle: Synced 2h ago
+              PingCastle: {t('app.syncedAgo', lang)}
             </div>
-            <button className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-slate-200 relative" title="Alertes de sécurité" aria-label="Alertes de sécurité">
+            <button className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-slate-200 relative" title={t('app.securityAlerts', lang)} aria-label={t('app.securityAlerts', lang)}>
               <AlertTriangle size={20} />
               <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
             </button>

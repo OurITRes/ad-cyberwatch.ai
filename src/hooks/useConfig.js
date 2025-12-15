@@ -16,9 +16,6 @@ export const useConfig = () => {
     bhToken: '********************',
     pcReportPath: 'C:\\Reports\\PingCastle\\',
     pcCatalogPath: 'C:\\PingCastle\\Rules\\Catalog.xml',
-    nistEnabled: true,
-    cisEnabled: true,
-    customEnabled: true,
     jiraUrl: 'https://jira.company.com',
     jiraUser: 'svc_cyberwatch',
     jiraToken: '********************',
@@ -28,7 +25,11 @@ export const useConfig = () => {
     snToken: '********************',
     autoApprovalThreshold: 'Low',
     defaultAssignee: 'SOC_L1',
-    requireCabApproval: true
+    requireCabApproval: true,
+    ssoProvider: 'azuread',
+    ssoClientId: '',
+    ssoTenantId: '',
+    ssoRedirectUri: ''
   });
 
   const [isSaving, setIsSaving] = useState(false);

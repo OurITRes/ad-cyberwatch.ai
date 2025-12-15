@@ -14,7 +14,7 @@ export default function DetailedAnalysisView({ ctx }) {
     <div className="animate-in slide-in-from-right duration-300 space-y-6">
       <div className="flex justify-between items-center mb-4">
          <button onClick={() => setActiveView('dashboard')} className="flex items-center text-slate-500 hover:text-slate-800 font-medium transition-colors">
-           <ArrowRight className="rotate-180 mr-2" size={18} /> {t('details.backToCommandCenter', lang)}
+           <ArrowRight className="rotate-180 mr-2" size={18} /> {t('details.backTo', lang)}{t('menu.command', lang)}
          </button>
          <div className="flex items-center space-x-2 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
            <span className="text-xs font-bold text-slate-500 px-2 uppercase">{t('details.selectVulnerability', lang)}</span>
