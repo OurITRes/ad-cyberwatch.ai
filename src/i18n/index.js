@@ -138,9 +138,11 @@ const TRANSLATIONS = {
     'automation.redirectUri': 'Redirect URI',
     'automation.ssoInstruction': 'Once configured, use the "Test SSO" button to verify the connection.',
     'automation.testSso': 'Test SSO',
+    'automation.info': 'Info',
     'automation.low': 'Low',
     'automation.medium': 'Medium',
     'automation.high': 'High',
+    'automation.critical': 'Critical',
     
     // COMPLIANCE
     'compliance.title': 'Compliance Radar',
@@ -490,9 +492,11 @@ const TRANSLATIONS = {
     'automation.redirectUri': 'URI de redirection',
     'automation.ssoInstruction': 'Une fois configuré, utilisez le bouton "Tester SSO" pour vérifier la connexion.',
     'automation.testSso': 'Tester SSO',
+    'automation.info': 'Info',
     'automation.low': 'Bas',
     'automation.medium': 'Medium',
     'automation.high': 'Haut',
+    'automation.critical': 'Critique',
     
     // COMPLIANCE
     'compliance.title': 'Radar de Conformité',
