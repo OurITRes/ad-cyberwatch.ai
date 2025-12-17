@@ -4,9 +4,16 @@
 import { spawn } from 'child_process';
 
 function start(name, cmd, args) {
-  const p = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], shell: true });
-  p.stdout.on('data', d => process.stdout.write(`[${name}] ${d}`));
-  p.stderr.on('data', d => process.stderr.write(`[${name}] ${d}`));
+  const isWin = process.platform === 'win32';
+  const p = isWin
+    ? spawn([cmd, ...args].join(' '), { stdio: 'inherit', shell: true })
+    : spawn(cmd, args, { stdio: 'inherit' });
+  p.on('error', (err) => {
+    console.error(`[${name}] spawn error:`, err);
+    if (cmd === 'npm' || cmd === 'npm.cmd') {
+      console.error('[hint] On Windows, ensure npm is available or use npm.cmd');
+    }
+  });
   p.on('exit', (code) => console.log(`${name} exited with ${code}`));
   return p;
 }
