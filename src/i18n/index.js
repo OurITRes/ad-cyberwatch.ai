@@ -138,9 +138,11 @@ const TRANSLATIONS = {
     'automation.redirectUri': 'Redirect URI',
     'automation.ssoInstruction': 'Once configured, use the "Test SSO" button to verify the connection.',
     'automation.testSso': 'Test SSO',
+    'automation.info': 'Info',
     'automation.low': 'Low',
     'automation.medium': 'Medium',
     'automation.high': 'High',
+    'automation.critical': 'Critical',
     
     // COMPLIANCE
     'compliance.title': 'Compliance Radar',
@@ -176,6 +178,38 @@ const TRANSLATIONS = {
     'compliance.categoryDetails': 'Details by category',
     'compliance.currentScore': 'Current Score',
     'compliance.target': 'Target',
+    'compliance.totalFindings': 'Total Findings',
+    'compliance.criticalFindings': 'Critical',
+    'compliance.highFindings': 'High',
+    'compliance.radarDescription': 'Radar computed dynamically from findings (severity-based penalties).',
+    
+    // ROSETTA
+    'rosetta.title': 'Rosetta Stone',
+    'rosetta.description': 'Unified view of detections and their framework mappings',
+    'rosetta.source': 'Source',
+    'rosetta.titleId': 'ID / Title',
+    'rosetta.mappings': 'Mappings (Tags)',
+    'rosetta.actions': 'Actions',
+    'rosetta.edit': 'Edit',
+    'rosetta.save': 'Save',
+    'rosetta.cancel': 'Cancel',
+    
+    // PINGCASTLE
+    'pingcastle.title': 'PingCastle Import',
+    'pingcastle.description': 'Import and analyze PingCastle XML reports',
+    'pingcastle.upload': 'Upload XML Report',
+    'pingcastle.importReport': 'Import a Report',
+    'pingcastle.findings': 'Findings',
+    'pingcastle.riskId': 'Risk ID',
+    'pingcastle.ruleName': 'Rule Name',
+    'pingcastle.score': 'Score',
+    
+    // BLOODHOUND
+    'bloodhound.title': 'BloodHound Enterprise',
+    'bloodhound.description': 'Query and analyze BloodHound attack paths',
+    'bloodhound.cypherQuery': 'Cypher Query',
+    'bloodhound.execute': 'Execute & Categorize',
+    'bloodhound.findings': 'Findings',
     
     // DETAILS
     'details.backTo': 'Back to ',
@@ -236,14 +270,6 @@ const TRANSLATIONS = {
     'ml.featureWeighting': 'Feature Weighting',
     'ml.modelAccuracy': 'Model Accuracy',
     
-    // BLOODHOUND
-    'bloodhound.title': 'BloodHound View',
-    'bloodhound.content': 'BloodHound content to integrate (coming soon).',
-    
-    // PINGCASTLE
-    'pingcastle.title': 'PingCastle View',
-    'pingcastle.content': 'PingCastle content to integrate (coming soon).',
-    
     // PROFILE
     'profile.title': 'My Profile',
     'profile.email': 'Email / ID',
@@ -293,10 +319,6 @@ const TRANSLATIONS = {
     'remediation.done': 'Done',
     'remediation.validation': 'Validation',
     'remediation.critical': 'Critical',
-    
-    // ROSETTA
-    'rosetta.title': 'Rosetta Stone',
-    'rosetta.content': 'Content to integrate (coming soon).',
     
     // USERS
     'users.title': 'User Management',
@@ -490,9 +512,11 @@ const TRANSLATIONS = {
     'automation.redirectUri': 'URI de redirection',
     'automation.ssoInstruction': 'Une fois configuré, utilisez le bouton "Tester SSO" pour vérifier la connexion.',
     'automation.testSso': 'Tester SSO',
+    'automation.info': 'Info',
     'automation.low': 'Bas',
     'automation.medium': 'Medium',
     'automation.high': 'Haut',
+    'automation.critical': 'Critique',
     
     // COMPLIANCE
     'compliance.title': 'Radar de Conformité',
@@ -527,6 +551,10 @@ const TRANSLATIONS = {
     'compliance.categoryDetails': 'Détails par catégorie',
     'compliance.currentScore': 'Score Actuel',
     'compliance.target': 'Objectif',
+    'compliance.totalFindings': 'Total Findings',
+    'compliance.criticalFindings': 'Critiques',
+    'compliance.highFindings': 'Élevées',
+    'compliance.radarDescription': 'Radar calculé dynamiquement depuis les findings (pénalités selon sévérité).',
     
     // DETAILS
     'details.backTo': 'Retour au ',
@@ -585,14 +613,6 @@ const TRANSLATIONS = {
     'ml.featureWeighting': 'Pondération des Caractéristiques',
     'ml.modelAccuracy': 'Précision du Modèle',
     
-    // BLOODHOUND
-    'bloodhound.title': 'Vue BloodHound',
-    'bloodhound.content': 'Contenu BloodHound à intégrer (à venir).',
-    
-    // PINGCASTLE
-    'pingcastle.title': 'Vue PingCastle',
-    'pingcastle.content': 'Contenu PingCastle à intégrer (à venir).',
-    
     // PROFILE
     'profile.title': 'Mon Profil',
     'profile.email': 'Email / ID',
@@ -639,7 +659,31 @@ const TRANSLATIONS = {
     
     // ROSETTA
     'rosetta.title': 'Pierre de Rosette',
-    'rosetta.content': 'Contenu à intégrer (à venir).',
+    'rosetta.description': 'Vue unifiée de toutes les détections et leurs correspondances frameworks',
+    'rosetta.source': 'Source',
+    'rosetta.titleId': 'ID / Titre',
+    'rosetta.mappings': 'Mappings (Tags)',
+    'rosetta.actions': 'Actions',
+    'rosetta.edit': 'Éditer',
+    'rosetta.save': 'Enregistrer',
+    'rosetta.cancel': 'Annuler',
+    
+    // PINGCASTLE
+    'pingcastle.title': 'Import PingCastle',
+    'pingcastle.description': 'Importer et analyser les rapports XML PingCastle',
+    'pingcastle.upload': 'Charger un rapport XML',
+    'pingcastle.importReport': 'Importer un Rapport',
+    'pingcastle.findings': 'Détections',
+    'pingcastle.riskId': 'ID du Risque',
+    'pingcastle.ruleName': 'Nom de la Règle',
+    'pingcastle.score': 'Score',
+    
+    // BLOODHOUND
+    'bloodhound.title': 'BloodHound Enterprise',
+    'bloodhound.description': 'Interroger et analyser les chemins d\'attaque BloodHound',
+    'bloodhound.cypherQuery': 'Requête Cypher',
+    'bloodhound.execute': 'Exécuter & Catégoriser',
+    'bloodhound.findings': 'Détections',
     
     // USERS
     'users.title': 'Gestion des Utilisateurs',
