@@ -45,9 +45,9 @@ jobs:
       
       - name: Run tests (if available)
         run: |
-          if [ -f "package.json" ] && grep -q '"test"' package.json; then
+          if [ -f "package.json" ] && grep -q '"test":' package.json; then
             npm test
           else
-            echo "No tests configured in root package.json, skipping..."
+            echo "No test script configured in root package.json, skipping..."
+            echo "Add 'test' script to package.json to enable automated testing"
           fi
-        continue-on-error: true
