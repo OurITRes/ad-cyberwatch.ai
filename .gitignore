@@ -37,11 +37,14 @@ archivesNotUsed/
 .env
 .env.local
 .env.*.local
+
+config/environments/*.local.json
+config/.env
+
+# --- UI env files (generated/local) ---
 ui/.env
 ui/.env.local
 ui/.env.*.local
-config/environments/*.local.json
-config/.env
 
 # Security - sensitive configs (use AWS Secrets Manager in production)
 config/security/*.local.json
@@ -76,4 +79,5 @@ server/data/*.local.json
 
 # SAM guided config (user-specific)
 # (optionnel mais recommandé en open-source)
+samconfig.toml
 /infra/samconfig.toml
