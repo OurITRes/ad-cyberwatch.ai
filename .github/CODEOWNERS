@@ -1,0 +1,20 @@
+# CODEOWNERS
+# This file defines code ownership and review requirements for the repository.
+# 
+# Each line is a file pattern followed by one or more owners.
+# Owners will be automatically requested for review when someone opens a PR
+# that modifies files matching the pattern.
+#
+# More information: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner - All changes require approval from @IamPhilG
+*       @IamPhilG
+
+# Documentation - Requires docs team review
+/docs/                  @OurITRes/docs-team @IamPhilG
+*.md                    @OurITRes/docs-team @IamPhilG
+
+# Infrastructure and deployment
+/infra/                 @OurITRes/ops-team @IamPhilG
+/config/                @OurITRes/ops-team @IamPhilG
+/.github/workflows/     @OurITRes/ops-team @IamPhilG
