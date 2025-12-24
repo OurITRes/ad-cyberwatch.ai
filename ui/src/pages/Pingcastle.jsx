@@ -11,7 +11,7 @@ export default function PingcastlePage({ ctx }) {
   const [latestReport, setLatestReport] = useState(null);
   const [findings, setFindings] = useState([]);
   const [pingcastleRules, setPingcastleRules] = useState([]);
-  const [selectedFramework] = useState('all');
+  const [selectedFramework, setSelectedFramework] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all'); // all, mapped, unmapped
   const [loading, setLoading] = useState(true);
   const [selectedFinding, setSelectedFinding] = useState(null);
