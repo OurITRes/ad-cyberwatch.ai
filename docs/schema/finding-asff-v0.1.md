@@ -1,246 +1,186 @@
-# AWS Security Finding Format (ASFF) - Minimal Profile
+# Finding Canonical Model — ASFF-like (v0.1)
 
-## 1. Purpose / Scope
+## Why ASFF first (v1.0)
 
-Ce document définit le profil minimal d’un enregistrement de type "Finding" inspiré du format
-AWS Security Finding Format (ASFF), adapté pour l’intégration de sources comme PingCastle et BHE.
-Il vise à standardiser la structure des findings pour faciliter leur traitement, leur stockage (ex: DynamoDB) et
-leur exploitation dans un contexte multi-source.
+For v1.0, **our internal “Unified Weakness Data Model (UDM)” is ASFF-like**:
 
-## 2. FindingRecord profile v0.1 (ASFF-like)
+- **MUST:** AWS Security Finding Format (ASFF) compatibility so our “finding objects” can later be exported to
+Security Hub / Security Lake without rewriting the model.
+- **SHOULD:** OCSF export (interface-only first).
+- **NICE:** ECS export.
 
-### 2.1 Champs requis (minimum vital)
+ASFF has a clear, stable structure with well-defined required attributes. We adopt an **ASFF minimal profile** (below)
+and store the full finding JSON as our canonical record.
 
-- `SchemaVersion` (ex: "2018-10-08")
-- `Id` (string unique)
-- `ProductArn` (placeholder interne pour l’instant)
-- `GeneratorId` (ex: "pingcastle")
-- `AwsAccountId` ("000000000000" en POC si non-AWS)
-- `Types` (ex: ["Software and Configuration Checks/Industry and Regulatory Standards"])
-- `CreatedAt`, `UpdatedAt` (ISO8601)
-- `Severity.Label` (INFORMATIONAL | LOW | MEDIUM | HIGH | CRITICAL)
+> Important: v0.1 is “ASFF-like”, not “we are already sending findings to Security Hub”.
+> The goal is: **our internal findings are structurally compatible with ASFF**.
+
+---
+
+## ASFF minimal profile (what we enforce)
+
+### Required top-level attributes (we always populate)
+
+We always populate the required top-level ASFF attributes (per AWS Security Hub docs):
+
+- `SchemaVersion`
+- `Id`
+- `ProductArn`
+- `GeneratorId`
+- `AwsAccountId`
+- `Types`
+- `CreatedAt`
+- `UpdatedAt`
+- `Severity`
 - `Title`
 - `Description`
-- `Resources[]` (au moins 1 resource, même “domain”)
-- `RecordState` (ACTIVE | ARCHIVED)
-- `Workflow.Status` (NEW | NOTIFIED | SUPPRESSED | RESOLVED)
+- `Resources`
 
-### 2.2 Champs optionnels (standardisés)
+### Minimal recommended attributes (v0.1)
 
-- `Remediation` (Objet contenant `Recommendation.Text` et `Recommendation.Url`)
-- `Compliance` (Objet contenant `Status`, `RelatedRequirements`)
-- `ProductFields` (pour extensions internes)
-- `UserDefinedFields` (pour extensions internes)
+In addition to the required attributes, we standardize:
 
-### 2.3 Extensions internes (UserDefinedFields ou ProductFields)
+- `ProductFields` (**our internal extension point**)  
+  - Namespacing rule:
+    - `adcyberwatch.*` for internal stable fields
+    - `<source>.*` for source-specific fields (`pingcastle.*`, `bhe.*`, …)
+- `Remediation.Recommendation.Text` when available (ex: PingCastle rules “Solution”).
 
-- `source` (pingcastle | bhe)
-- `runId`
-- `ruleId` (PingCastle)
-- `domainFqdn`
-- `evidenceS3Key`
-- `compliance.links[]` (controlId list)
+---
 
-## 3. ID strategy
+## Canonical IDs & determinism
 
-L’identifiant `Id` doit être déterministe et unique pour chaque finding. Il est construit à partir de :
+### Run ID (PingCastle report)
 
-- `source` (ex: pingcastle)
-- `ruleId` (ou équivalent)
-- `asset` (ex: domainFqdn)
-- `runId` (identifiant d’exécution)
+- `runId` is deterministic, derived from the **report content hash**:
+  - `runId = uuid5(namespace, "pingcastle|report|<sha256(report_xml)>")`
 
-Exemple :
+### Finding ID (PingCastle)
 
-```text
-pingcastle:ruleId=PC-001;domain=labad.local;runId=2024-12-24T10:00:00Z
-```
+- One finding per PingCastle `riskId` **per run**:
+  - `findingId = uuid5(namespace, "asff|pingcastle|<runId>|<riskId>")`
 
-## 4. Severity mapping
+This ensures:
 
-| PingCastle Risk | Severity.Label |
-|-----------------|----------------|
-| 0 (Info)        | INFORMATIONAL  |
-| 1 (Low)         | LOW            |
-| 2 (Medium)      | MEDIUM         |
-| 3 (High)        | HIGH           |
-| 4 (Critical)    | CRITICAL       |
+- Re-ingesting the same file does not create duplicates.
+- We can safely re-run ingestion (non-destructive).
 
-## 5. Examples
+---
 
-### 5.1 PingCastle Example 1
+## Mapping rules (PingCastle)
+
+PingCastle has two XML artifacts:
+
+1) **Rules catalog** (PingCastleRules.xml)  
+   - Contains rule definitions (Title/Description/Solution/…)
+   - Changes with PingCastle versions
+
+2) **Healthcheck report** (ad_hc_`<domain>`.xml)  
+   - Contains the list of detected risks (riskId + points + rationale)  
+   - Does **not** contain full rule definitions
+
+v0.1 behavior:
+
+- We ingest the **rules catalog** and store it as a “rules pack”.
+- When ingesting a **report**, we enrich findings by joining `riskId` → rule definition from the **latest rules pack**.
+
+---
+
+## Canonical field conventions (ProductFields)
+
+We standardize at least these fields:
+
+### Internal (always)
+
+- `adcyberwatch.source` = `"pingcastle"` | `"bhe"` | …
+- `adcyberwatch.runId`
+- `adcyberwatch.domain`
+- `adcyberwatch.generationDate` (as in source)
+- `adcyberwatch.generationDateUtc` (normalized UTC ISO)
+- `adcyberwatch.rawS3Key`
+
+### PingCastle specific
+
+- `pingcastle.riskId`
+- `pingcastle.category`
+- `pingcastle.model`
+- `pingcastle.points`
+- `pingcastle.rationale`
+- `pingcastle.rulesPackId` (rules catalog pack used for enrichment)
+
+---
+
+## Examples (v0.1)
+
+### Example 1 — PingCastle finding (ASFF-like)
 
 ```json
 {
   "SchemaVersion": "2018-10-08",
-  "Id": "pingcastle:ruleId=PC-001;domain=ad_hc_labad.local;runId=2024-12-24T10:00:00Z",
-  "ProductArn": "arn:cyberwatch:product/pingcastle",
-  "GeneratorId": "pingcastle",
-  "AwsAccountId": "000000000000",
-  "Types": [
-    "Software and Configuration Checks/Industry and Regulatory Standards"
-  ],
-  "CreatedAt": "2024-12-24T10:00:00Z",
-  "UpdatedAt": "2024-12-24T10:00:00Z",
-  "Severity": {
-    "Label": "HIGH"
-  },
-  "Title": "Kerberos Pre-Auth Not Required",
-  "Description": "Some accounts do not require Kerberos pre-authentication, increasing risk of password attacks.",
+  "Id": "adcyberwatch:0f8d3b1b-1c4e-5e2f-b94d-8d1c1b3bb1e2",
+  "ProductArn": "arn:aws:securityhub:ca-central-1:123456789012:product/123456789012/default",
+  "GeneratorId": "ad-cyberwatch.ai/pingcastle",
+  "AwsAccountId": "123456789012",
+  "Types": ["Software and Configuration Checks/Vulnerabilities"],
+  "CreatedAt": "2025-12-18T19:32:25.687474+00:00",
+  "UpdatedAt": "2025-12-18T19:32:25.687474+00:00",
+  "Severity": { "Label": "CRITICAL", "Normalized": 90, "Original": "30" },
+  "Title": "Mitigate golden ticket attack via a regular change of the krbtgt password",
+  "Description": "The purpose is to alert when the password for ...",
   "Resources": [
     {
-      "Type": "AwsIamUser",
-      "Id": "user1@ad_hc_labad.local",
+      "Type": "Other",
+      "Id": "ad://domain/labad.local",
       "Partition": "aws",
-      "Region": "us-east-1"
+      "Details": { "Other": { "DomainFQDN": "labad.local" } }
     }
   ],
-  "RecordState": "ACTIVE",
-  "Workflow": {
-    "Status": "NEW"
+  "Remediation": {
+    "Recommendation": { "Text": "The password of the krbtgt account should be changed..." }
   },
   "ProductFields": {
-    "source": "pingcastle",
-    "runId": "2024-12-24T10:00:00Z",
-    "ruleId": "PC-001",
-    "domainFqdn": "ad_hc_labad.local",
-    "evidenceS3Key": "evidence/PC-001/user1.json",
-    "compliance.links": "[\"CIS-1.1.1\"]"
+    "adcyberwatch.source": "pingcastle",
+    "adcyberwatch.runId": "<runId>",
+    "adcyberwatch.domain": "labad.local",
+    "adcyberwatch.generationDate": "2025-12-18T14:32:25.6874739-05:00",
+    "adcyberwatch.generationDateUtc": "2025-12-18T19:32:25.687474+00:00",
+    "adcyberwatch.rawS3Key": "raw/pingcastle/report/.../ad_hc_labad.local.xml",
+    "pingcastle.riskId": "A-Krbtgt",
+    "pingcastle.points": "30",
+    "pingcastle.rulesPackId": "<packId>"
   }
 }
 ```
 
-### 5.2 PingCastle Example 2
+### Example 2 — Unmapped finding (placeholder for later sources)
 
 ```json
 {
   "SchemaVersion": "2018-10-08",
-  "Id": "pingcastle:ruleId=PC-002;domain=ad_hc_labad.local;runId=2024-12-24T10:00:00Z",
-  "ProductArn": "arn:cyberwatch:product/pingcastle",
-  "GeneratorId": "pingcastle",
-  "AwsAccountId": "000000000000",
-  "Types": [
-    "Software and Configuration Checks/Best Practices"
-  ],
-  "CreatedAt": "2024-12-24T10:00:00Z",
-  "UpdatedAt": "2024-12-24T10:00:00Z",
-  "Severity": {
-    "Label": "MEDIUM"
-  },
-  "Title": "Weak Password Policy",
-  "Description": "The domain password policy does not enforce complexity requirements.",
-  "Resources": [
-    {
-      "Type": "Other",
-      "Id": "ad_hc_labad.local",
-      "Details": {
-        "Other": {
-          "Type": "AD-Domain"
-        }
-      }
-    }
-  ],
-  "RecordState": "ACTIVE",
-  "Workflow": {
-    "Status": "NEW"
-  },
+  "Id": "adcyberwatch:<findingId>",
+  "ProductArn": "arn:aws:securityhub:ca-central-1:123456789012:product/123456789012/default",
+  "GeneratorId": "ad-cyberwatch.ai/<source>",
+  "AwsAccountId": "123456789012",
+  "Types": ["Uncategorized"],
+  "CreatedAt": "2025-12-24T12:00:00+00:00",
+  "UpdatedAt": "2025-12-24T12:00:00+00:00",
+  "Severity": { "Label": "MEDIUM", "Normalized": 40, "Original": "unknown" },
+  "Title": "Source X finding (unmapped)",
+  "Description": "Raw finding text...",
+  "Resources": [{ "Type": "Other", "Id": "ad://domain/example.local" }],
   "ProductFields": {
-    "source": "pingcastle",
-    "runId": "2024-12-24T10:00:00Z",
-    "ruleId": "PC-002",
-    "domainFqdn": "ad_hc_labad.local",
-    "evidenceS3Key": "evidence/PC-002/domain.json",
-    "compliance.links": "[\"CIS-1.2.3\"]"
-  }
-}
-```
-
-### 5.3 BHE (BloodHound Enterprise) Example
-
-```json
-{
-  "SchemaVersion": "2018-10-08",
-  "Id": "bhe:ruleId=BHE-001;asset=server01;runId=2024-12-24T10:00:00Z",
-  "ProductArn": "arn:cyberwatch:product/bhe",
-  "GeneratorId": "bhe",
-  "AwsAccountId": "000000000000",
-  "Types": [
-    "Software and Configuration Checks/Vulnerabilities"
-  ],
-  "CreatedAt": "2024-12-24T10:00:00Z",
-  "UpdatedAt": "2024-12-24T10:00:00Z",
-  "Severity": {
-    "Label": "LOW"
-  },
-  "Title": "Unpatched Software Detected",
-  "Description": "Server01 is missing critical security updates leading to potential privilege escalation.",
-  "Resources": [
-    {
-      "Type": "Other",
-      "Id": "server01.corp.local",
-      "Details": {
-        "Other": {
-          "Type": "AD-Computer",
-          "OS": "Windows Server 2019"
-        }
-      }
-    }
-  ],
-  "RecordState": "ACTIVE",
-  "Workflow": {
-    "Status": "NEW"
-  },
-  "ProductFields": {
-    "source": "bhe",
-    "runId": "2024-12-24T10:00:00Z",
-    "ruleId": "BHE-001",
-    "evidenceS3Key": "evidence/BHE-001/server01.json",
-    "compliance.links": "[\"CUSTOM-1\"]"
-  }
-}
-```
-
-### 5.4 Unmapped finding Example
-
-```json
-{
-  "SchemaVersion": "2018-10-08",
-  "Id": "unmapped:runId=2024-12-24T10:00:00Z",
-  "ProductArn": "arn:cyberwatch:product/unmapped",
-  "GeneratorId": "custom",
-  "AwsAccountId": "000000000000",
-  "Types": [
-    "Unmapped"
-  ],
-  "CreatedAt": "2024-12-24T10:00:00Z",
-  "UpdatedAt": "2024-12-24T10:00:00Z",
-  "Severity": {
-    "Label": "INFORMATIONAL"
-  },
-  "Title": "Unmapped finding",
-  "Description": "This finding could not be mapped to a known rule.",
-  "Resources": [
-    {
-      "Type": "Other",
-      "Id": "unknown",
-      "Details": {
-        "Other": {
-          "Type": "Unknown"
-        }
-      }
-    }
-  ],
-  "RecordState": "ACTIVE",
-  "Workflow": {
-    "Status": "NEW"
-  },
-  "ProductFields": {
-    "source": "custom",
-    "runId": "2024-12-24T10:00:00Z"
+    "adcyberwatch.source": "source-x",
+    "adcyberwatch.runId": "<runId>"
   }
 }
 ```
 
 ---
 
-Document maintenu par l’équipe AD Cyberwatch.ai.
+## Compatibility plan (interfaces only in v1.0)
+
+- **ASFF (MUST):** our canonical record.
+- **OCSF (SHOULD):** later export adapter (interface-first).
+- **ECS (NICE):** later export adapter.
+
+The “pivot” stays internal and versioned (v0.1 → v0.2 → …), while exports evolve independently.
