@@ -201,6 +201,7 @@ pingcastle:ruleId=PC-001;domain=labad.local;runId=2024-12-24T10:00:00Z
 ```
 
 ### 5.4 Unmapped finding Example
+
 ```json
 {
   "SchemaVersion": "2018-10-08",
