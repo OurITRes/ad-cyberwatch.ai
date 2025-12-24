@@ -1,277 +1,554 @@
 import json
-import boto3
-import xml.etree.ElementTree as ET
-from datetime import datetime
-from uuid import uuid4
 import os
+import hashlib
+import uuid
+from datetime import datetime, timezone
+import xml.etree.ElementTree as ET
+from urllib.parse import unquote_plus
 
-s3_client = boto3.client('s3')
-dynamodb = boto3.resource('dynamodb')
+import boto3
 
-# Environment variables
-MAIN_TABLE_NAME = os.environ.get('MAIN_TABLE_NAME')
-CURATED_BUCKET = os.environ.get('CURATED_BUCKET')
+# -----------------------------------------------------------------------------
+# ad-cyberwatch.ai — PingCastle ingestion (v0.1)
+#
+# This Lambda is triggered by S3 ObjectCreated events on RawBucket (via EventBridge).
+# It supports TWO PingCastle XML artifacts:
+#   1) Rules catalog (PingCastleRules.xml)  -> curated/pingcastle/rules/... + DDB metadata
+#   2) Healthcheck report (ad_hc_<domain>.xml) -> ASFF-like findings + RUN summary in DDB
+#
+# Non-destructive principle:
+# - We never delete raw objects.
+# - Curated outputs are written under content-hash derived keys (packId/runId) so re-uploads
+#   remain deterministic.
+# -----------------------------------------------------------------------------
 
-table = dynamodb.Table(MAIN_TABLE_NAME)
+s3 = boto3.client("s3")
+ddb = boto3.resource("dynamodb")
+
+MAIN_TABLE_NAME = os.environ.get("MAIN_TABLE_NAME")
+CURATED_BUCKET = os.environ.get("CURATED_BUCKET")
+
+table = ddb.Table(MAIN_TABLE_NAME)
+
+ASFF_SCHEMA_VERSION = "2018-10-08"
+
+# Stable namespace UUID for deterministic uuid5 IDs.
+NAMESPACE_UUID = uuid.UUID("b2c3d6ea-4f79-4b9b-9c9b-4d6a0f2d0d6a")
 
 
 def handler(event, context):
-    """
-    Lambda handler triggered by S3 ObjectCreated event.
-    Parses PingCastle XML, writes to DynamoDB and S3 curated.
-    """
     print(f"Event received: {json.dumps(event)}")
-    
+
+    bucket, key = _extract_s3_bucket_key(event)
+    if not bucket or not key:
+        return {"statusCode": 400, "body": json.dumps({"message": "Bad event structure"})}
+
+    print(f"Processing: s3://{bucket}/{key}")
+
+    obj = s3.get_object(Bucket=bucket, Key=key)
+    raw_bytes = obj["Body"].read()
+    xml_text = raw_bytes.decode("utf-8", errors="replace")
+
+    # Parse XML once, then detect artifact type from root structure.
     try:
-        # Extract S3 event details (supports EventBridge and direct S3 notifications)
-        processed = False
-        
-        # Case 1: EventBridge S3 event (top-level 'detail')
-        if isinstance(event, dict) and 'detail' in event:
-            bucket = event['detail']['bucket']['name']
-            key = event['detail']['object']['key']
-            processed = True
-        
-        # Case 2: Direct S3 event (Records array)
-        elif isinstance(event, dict) and 'Records' in event:
-            for record in event.get('Records', []):
-                if 's3' in record:
-                    bucket = record['s3']['bucket']['name']
-                    key = record['s3']['object']['key']
-                    processed = True
-                else:
-                    print(f"Unknown S3 record structure: {record}")
-        
-        if not processed:
-            print("No recognizable S3 event structure found")
-            return {
-                'statusCode': 400,
-                'body': json.dumps({'message': 'Bad event structure'})
-            }
-        
-        print(f"Processing: s3://{bucket}/{key}")
-        
-        # Download XML from S3
-        response = s3_client.get_object(Bucket=bucket, Key=key)
-        xml_content = response['Body'].read().decode('utf-8')
-        
-        # Parse XML and process findings
-        findings, generation_date, domain_fqdn = parse_pingcastle_xml(xml_content)
-        
-        if not findings:
-            print("No findings found in XML")
-            return {
-                'statusCode': 204,
-                'body': json.dumps({'message': 'No findings'})
-            }
-        
-        # Write to DynamoDB
-        write_to_dynamodb(findings, key, generation_date, domain_fqdn)
-        
-        # Write snapshot to S3 curated
-        write_to_curated(findings, key, generation_date, domain_fqdn)
-        
-        print(f"Successfully processed {len(findings)} findings from {key}")
-        
-        return {
-            'statusCode': 200,
-            'body': json.dumps({'message': 'Processing completed'})
-        }
-    
-    except Exception as e:
-        print(f"Error processing event: {str(e)}")
-        raise
+        root = ET.fromstring(xml_text)
+    except ET.ParseError:
+        print("Not valid XML -> ignoring")
+        return {"statusCode": 204, "body": json.dumps({"message": "Not XML"})}
+
+    # PingCastle XML typically has no namespaces, but be defensive:
+    _strip_namespaces_inplace(root)
+
+    artifact_type = detect_pingcastle_artifact(root)
+
+    if artifact_type == "rules":
+        return process_rules_catalog(root, xml_text, key)
+
+    if artifact_type == "report":
+        return process_report(root, xml_text, key, context)
+
+    print("Unknown PingCastle artifact -> ignoring")
+    return {"statusCode": 204, "body": json.dumps({"message": "Unknown artifact"})}
 
 
-def parse_pingcastle_xml(xml_content):
+# -----------------------------------------------------------------------------
+# Event helpers
+# -----------------------------------------------------------------------------
+
+def _extract_s3_bucket_key(event: dict):
     """
-    Parse PingCastle XML and extract findings from RiskRules.
-    Returns tuple: (list of finding dictionaries, generation_date string, domain_fqdn string).
+    Supports:
+    - EventBridge S3 events: event.detail.bucket.name + event.detail.object.key
+    - S3 Notifications: event.Records[].s3.bucket.name + event.Records[].s3.object.key
+
+    Note: keys can be URL-encoded, so we decode via unquote_plus.
     """
-    findings = []
-    generation_date = None
-    domain_fqdn = None
-    
+    # EventBridge
+    if isinstance(event, dict) and "detail" in event:
+        d = event["detail"]
+        return d["bucket"]["name"], unquote_plus(d["object"]["key"])
+
+    # S3 notification
+    if isinstance(event, dict) and "Records" in event:
+        for r in event.get("Records", []):
+            if "s3" in r:
+                return r["s3"]["bucket"]["name"], unquote_plus(r["s3"]["object"]["key"])
+
+    return None, None
+
+
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def sha256_hex_str(s: str) -> str:
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+
+
+def normalize_domain(domain: str) -> str:
+    return (domain or "unknown").lower().rstrip(".")
+
+
+def get_account_region_from_context(context):
+    arn = getattr(context, "invoked_function_arn", "") or ""
+    parts = arn.split(":")
+    region = parts[3] if len(parts) > 3 else (os.environ.get("AWS_REGION") or "ca-central-1")
+    account = parts[4] if len(parts) > 4 else "000000000000"
+    return account, region
+
+
+def parse_iso_to_utc_iso(dt_str: str) -> str:
+    """
+    PingCastle GenerationDate example: 2025-12-18T14:32:25.6874739-05:00
+
+    We normalize to UTC ISO for:
+    - Run ordering (DDB run index)
+    - Consistent timestamps
+    """
+    if not dt_str:
+        return utc_now_iso()
     try:
-        root = ET.fromstring(xml_content)
-        
-        # Extract GenerationDate from XML root
-        generation_date_elem = root.find('.//GenerationDate')
-        if generation_date_elem is not None and generation_date_elem.text:
-            # Parse the ISO 8601 datetime string
-            # Format: 2025-12-18T14:32:25.6874739-05:00
-            generation_date = generation_date_elem.text
-            print(f"Found GenerationDate: {generation_date}")
-        else:
-            # Fallback to current time if GenerationDate not found
-            generation_date = datetime.utcnow().isoformat()
-            print("Warning: GenerationDate not found in XML, using current time")
-        
-        # Extract DomainFQDN from XML root
-        domain_elem = root.find('.//DomainFQDN')
-        if domain_elem is not None and domain_elem.text:
-            domain_fqdn = domain_elem.text
-            print(f"Found DomainFQDN: {domain_fqdn}")
-        else:
-            print("Warning: DomainFQDN not found in XML")
-        
-        # Find RiskRules section
-        risk_rules = root.find('.//RiskRules')
-        if risk_rules is None:
-            print("No RiskRules section found in XML")
-            return findings, generation_date, domain_fqdn
-        
-        # Extract each HealthcheckRiskRule
-        for rule in risk_rules.findall('HealthcheckRiskRule'):
-            finding = {}
-            
-            # Extract required fields
-            finding['riskId'] = get_element_text(rule, 'RiskId')
-            finding['category'] = get_element_text(rule, 'Category')
-            finding['model'] = get_element_text(rule, 'Model')
-            finding['points'] = get_element_text(rule, 'Points')
-            finding['rationale'] = get_element_text(rule, 'Rationale')
-            
-            # Optional fields
-            finding['details'] = get_element_text(rule, 'Details')
-            
-            if finding['riskId']:
-                findings.append(finding)
-        
-        print(f"Parsed {len(findings)} findings from XML")
-        
-    except ET.ParseError as e:
-        print(f"XML parsing error: {str(e)}")
-        raise
-    
-    return findings, generation_date, domain_fqdn
-
-
-def get_element_text(parent, tag_name):
-    """
-    Safely extract text from XML element.
-    """
-    element = parent.find(tag_name)
-    return element.text if element is not None and element.text else ''
-
-
-def write_to_dynamodb(findings, s3_key, generation_date, domain_fqdn):
-    """
-    Write findings to DynamoDB with deduplication.
-    Deduplication key: date + domain + riskId
-    Structure:
-    - Weakness: pk=WEAK#{riskId}#{domain}#{date}, sk=META
-    - Evidence: pk=WEAK#{riskId}#{domain}#{date}, sk=EVID#{uuid}
-    Uses generation_date from XML for all timestamps.
-    """
-    
-    # Extract date from generation_date (YYYY-MM-DD)
-    try:
-        date_str = generation_date[:10]
+        # Python can't parse 7-digit fractional seconds -> trim to 6.
+        # Keep timezone offset.
+        m = dt_str
+        if "." in m:
+            head, tail = m.split(".", 1)
+            frac = "".join(ch for ch in tail if ch.isdigit())
+            tz = tail[len(frac):]
+            frac = (frac + "000000")[:6]
+            m = f"{head}.{frac}{tz}"
+        dt = datetime.fromisoformat(m)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc).isoformat()
     except Exception:
-        date_str = datetime.utcnow().strftime('%Y-%m-%d')
-    
-    # Normalize domain (lowercase, remove trailing dot)
-    domain_normalized = domain_fqdn.lower().rstrip('.') if domain_fqdn else 'unknown'
-    
-    for finding in findings:
-        risk_id = finding['riskId']
-        
-        # Create composite primary key: date + domain + riskId
-        # Example: WEAK#A-Krbtgt#labad.local#2025-12-18
-        composite_pk = f"WEAK#{risk_id}#{domain_normalized}#{date_str}"
-        
-        # 1. Write/Update Weakness metadata (composite_pk / META)
-        # Use UpdateItem with conditional expression to prevent overwrites if already exists
-        weakness_item = {
-            'pk': composite_pk,
-            'sk': 'META',
-            'riskId': risk_id,
-            'category': finding['category'],
-            'model': finding['model'],
-            'source': 'pingcastle',
-            'domain': domain_normalized,
-            'date': date_str,
-            'lastUpdated': generation_date
-        }
-        
-        try:
-            # Use put_item without condition - will update if already exists
-            table.put_item(Item=weakness_item)
-            print(f"Written/Updated weakness: {composite_pk}")
-        except Exception as e:
-            print(f"Error writing weakness {risk_id}: {str(e)}")
-        
-        # 2. Write Evidence (composite_pk / EVID#{uuid})
-        # Use composite key in sort key too to ensure uniqueness per scan
-        evidence_uuid = str(uuid4())
-        evidence_item = {
-            'pk': composite_pk,
-            'sk': f"EVID#{evidence_uuid}",
-            'evidenceId': evidence_uuid,
-            'points': finding['points'],
-            'rationale': finding['rationale'],
-            'details': finding.get('details', ''),
-            's3Key': s3_key,
-            'timestamp': generation_date,
-            'source': 'pingcastle',
-            'domain': domain_normalized,
-            'date': date_str
-        }
-        
-        try:
-            table.put_item(Item=evidence_item)
-            print(f"Written evidence: {composite_pk} / EVID#{evidence_uuid}")
-        except Exception as e:
-            print(f"Error writing evidence for {risk_id}: {str(e)}")
+        return utc_now_iso()
 
 
-def write_to_curated(findings, s3_key, generation_date, domain_fqdn):
+def _strip_namespaces_inplace(root: ET.Element):
     """
-    Write normalized JSON snapshot to S3 curated bucket.
-    Path: curated/findings/source=pingcastle/date=YYYY-MM-DD/{uuid}.json
-    Uses generation_date from XML for timestamps.
+    Remove {namespace} prefixes so XPath searches remain stable.
     """
-    # Parse generation_date to extract date component for S3 path
-    try:
-        # Handle ISO 8601 format: 2025-12-18T14:32:25.6874739-05:00
-        # Extract just the date part (first 10 chars: YYYY-MM-DD)
-        date_str = generation_date[:10]
-    except Exception:
-        # Fallback to current date if parsing fails
-        date_str = datetime.utcnow().strftime('%Y-%m-%d')
-    
-    # Normalize domain
-    domain_normalized = domain_fqdn.lower().rstrip('.') if domain_fqdn else 'unknown'
-    
-    snapshot_uuid = str(uuid4())
-    
-    # Build curated S3 key
-    curated_key = f"curated/findings/source=pingcastle/date={date_str}/domain={domain_normalized}/{snapshot_uuid}.json"
-    
-    # Build snapshot payload
-    snapshot = {
-        'source': 'pingcastle',
-        'timestamp': generation_date,
-        'originalS3Key': s3_key,
-        'domain': domain_normalized,
-        'findingsCount': len(findings),
-        'findings': findings,
-        'metadata': {
-            'processingTime': datetime.utcnow().isoformat(),
-            'generationDate': generation_date,
-            'version': '1.0'
-        }
+    for el in root.iter():
+        if "}" in el.tag:
+            el.tag = el.tag.split("}", 1)[1]
+
+
+# -----------------------------------------------------------------------------
+# Artifact detection
+# -----------------------------------------------------------------------------
+
+def detect_pingcastle_artifact(root: ET.Element) -> str:
+    # Rules catalog
+    if root.tag == "ArrayOfExportedRule" or root.find("ExportedRule") is not None:
+        return "rules"
+
+    # Healthcheck report
+    if root.find(".//RiskRules") is not None and root.find(".//DomainFQDN") is not None:
+        return "report"
+
+    return "unknown"
+
+
+# -----------------------------------------------------------------------------
+# Rules catalog processing
+# -----------------------------------------------------------------------------
+
+def process_rules_catalog(root: ET.Element, xml_text: str, raw_s3_key: str):
+    """
+    Stores:
+    - S3 curated pack (content-hash keyed)
+    - S3 curated "latest" pointer
+    - DDB pack metadata + DDB latest pointer
+
+    Note: We do NOT store all rules in DDB to avoid large items.
+    """
+    rules_by_riskid = parse_rules_catalog(root)
+
+    pack_id = sha256_hex_str(xml_text)
+    ingested_at = utc_now_iso()
+
+    curated_key = f"curated/pingcastle/rules/packId={pack_id}/rules.json"
+    latest_key = "curated/pingcastle/rules/latest.json"
+
+    payload = {
+        "packId": pack_id,
+        "source": "pingcastle",
+        "artifactType": "rules",
+        "ingestedAt": ingested_at,
+        "rawS3Key": raw_s3_key,
+        "ruleCount": len(rules_by_riskid),
+        "rulesByRiskId": rules_by_riskid,
+        "schemaVersion": "v0.1",
     }
-    
-    try:
-        s3_client.put_object(
-            Bucket=CURATED_BUCKET,
-            Key=curated_key,
-            Body=json.dumps(snapshot, indent=2),
-            ContentType='application/json'
+
+    # Write pack JSON
+    s3.put_object(
+        Bucket=CURATED_BUCKET,
+        Key=curated_key,
+        Body=json.dumps(payload, indent=2),
+        ContentType="application/json",
+    )
+
+    # Write "latest pointer"
+    latest_payload = {
+        "packId": pack_id,
+        "curatedS3Key": curated_key,
+        "updatedAt": ingested_at,
+        "ruleCount": len(rules_by_riskid),
+        "schemaVersion": "v0.1",
+    }
+    s3.put_object(
+        Bucket=CURATED_BUCKET,
+        Key=latest_key,
+        Body=json.dumps(latest_payload, indent=2),
+        ContentType="application/json",
+    )
+
+    # DDB metadata + latest
+    table.put_item(
+        Item={
+            "pk": "PINGCASTLE#RULES",
+            "sk": f"PACK#{pack_id}",
+            "entityType": "RULES_PACK",
+            "packId": pack_id,
+            "curatedS3Key": curated_key,
+            "updatedAt": ingested_at,
+            "ruleCount": len(rules_by_riskid),
+            "rawS3Key": raw_s3_key,
+            "schemaVersion": "v0.1",
+        }
+    )
+    table.put_item(
+        Item={
+            "pk": "PINGCASTLE#RULES",
+            "sk": "LATEST",
+            "entityType": "RULES_LATEST",
+            "packId": pack_id,
+            "curatedS3Key": curated_key,
+            "updatedAt": ingested_at,
+            "ruleCount": len(rules_by_riskid),
+            "schemaVersion": "v0.1",
+        }
+    )
+
+    print(f"Rules catalog processed. packId={pack_id}")
+    return {"statusCode": 200, "body": json.dumps({"message": "Rules catalog processed", "packId": pack_id})}
+
+
+def parse_rules_catalog(root: ET.Element) -> dict:
+    out = {}
+    for r in root.findall("ExportedRule"):
+        risk_id = _get_text(r, "RiskId")
+        if not risk_id:
+            continue
+
+        out[risk_id] = {
+            "riskId": risk_id,
+            "title": _get_text(r, "Title"),
+            "description": _get_text(r, "Description"),
+            "solution": _get_text(r, "Solution"),
+            "documentation": _get_text(r, "Documentation"),
+            "technicalExplanation": _get_text(r, "TechnicalExplanation"),
+            "category": _get_text(r, "Category"),
+            "model": _get_text(r, "Model"),
+            "type": _get_text(r, "Type"),
+            "maturityLevel": _get_text(r, "MaturityLevel"),
+        }
+    return out
+
+
+# -----------------------------------------------------------------------------
+# Report processing
+# -----------------------------------------------------------------------------
+
+def process_report(root: ET.Element, xml_text: str, raw_s3_key: str, context):
+    generation_date = _find_text(root, ".//GenerationDate") or utc_now_iso()
+    generation_date_utc = parse_iso_to_utc_iso(generation_date)
+    domain = normalize_domain(_find_text(root, ".//DomainFQDN") or "unknown")
+
+    # Deterministic runId from content hash
+    report_hash = sha256_hex_str(xml_text)
+    run_id = str(uuid.uuid5(NAMESPACE_UUID, f"pingcastle|report|{report_hash}"))
+
+    # Load latest rules pack (optional but recommended)
+    rules_pack_id, rules_by_riskid = load_latest_rules_pack()
+
+    # Parse RiskRules
+    risk_rules = root.find(".//RiskRules")
+    parsed = []
+    if risk_rules is not None:
+        for rr in risk_rules.findall("HealthcheckRiskRule"):
+            risk_id = _get_text(rr, "RiskId")
+            if not risk_id:
+                continue
+            parsed.append(
+                {
+                    "riskId": risk_id,
+                    "category": _get_text(rr, "Category"),
+                    "model": _get_text(rr, "Model"),
+                    "points": _get_text(rr, "Points"),
+                    "rationale": _get_text(rr, "Rationale"),
+                }
+            )
+
+    if not parsed:
+        print("No RiskRules found -> no findings")
+        return {"statusCode": 204, "body": json.dumps({"message": "No findings"})}
+
+    account, region = get_account_region_from_context(context)
+
+    # For now we keep a SecurityHub-like ProductArn to stay aligned with ASFF.
+    product_arn = f"arn:aws:securityhub:{region}:{account}:product/{account}/default"
+
+    created_at = generation_date_utc
+    updated_at = created_at
+
+    # Build ASFF findings + DDB items
+    findings_items = []
+    index_items = []
+
+    stats = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFORMATIONAL": 0}
+
+    for f in parsed:
+        risk_id = f["riskId"]
+        rule_def = rules_by_riskid.get(risk_id, {})
+
+        sev_label, sev_norm = pingcastle_points_to_asff_sev(f.get("points", ""))
+
+        stats[sev_label] = stats.get(sev_label, 0) + 1
+
+        finding_id = str(uuid.uuid5(NAMESPACE_UUID, f"asff|pingcastle|{run_id}|{risk_id}"))
+
+        title = rule_def.get("title") or f"PingCastle {risk_id}"
+        description = rule_def.get("description") or f.get("rationale") or ""
+
+        remediation_text = rule_def.get("solution") or ""
+
+        # --- Minimal ASFF profile (see docs/schema/finding-asff-v0.1.md) ---
+        asff = {
+            "SchemaVersion": ASFF_SCHEMA_VERSION,
+            "Id": f"adcyberwatch:{finding_id}",
+            "ProductArn": product_arn,
+            "GeneratorId": "ad-cyberwatch.ai/pingcastle",
+            "AwsAccountId": account,
+            "Types": ["Software and Configuration Checks/Vulnerabilities"],
+            "CreatedAt": created_at,
+            "UpdatedAt": updated_at,
+            "Severity": {
+                "Label": sev_label,
+                "Normalized": sev_norm,
+                "Original": str(f.get("points", "")),
+            },
+            "Title": title,
+            "Description": description,
+            "Resources": [
+                {
+                    "Type": "Other",
+                    "Id": f"ad://domain/{domain}",
+                    "Partition": "aws",
+                    "Details": {"Other": {"DomainFQDN": domain}},
+                }
+            ],
+            "ProductFields": {
+                # Internal stable fields (namespaced)
+                "adcyberwatch.source": "pingcastle",
+                "adcyberwatch.runId": run_id,
+                "adcyberwatch.domain": domain,
+                "adcyberwatch.generationDate": generation_date,
+                "adcyberwatch.generationDateUtc": generation_date_utc,
+                "adcyberwatch.rawS3Key": raw_s3_key,
+                # PingCastle specific
+                "pingcastle.riskId": risk_id,
+                "pingcastle.category": f.get("category", ""),
+                "pingcastle.model": f.get("model", ""),
+                "pingcastle.points": str(f.get("points", "")),
+                "pingcastle.rationale": f.get("rationale", ""),
+                "pingcastle.rulesPackId": rules_pack_id or "",
+            },
+        }
+
+        if remediation_text:
+            asff["Remediation"] = {"Recommendation": {"Text": remediation_text}}
+
+        # DDB items
+        findings_items.append(
+            {
+                "pk": f"RUN#{run_id}",
+                "sk": f"FINDING#{finding_id}",
+                "entityType": "FINDING",
+                "runId": run_id,
+                "findingId": finding_id,
+                "source": "pingcastle",
+                "domain": domain,
+                "riskId": risk_id,
+                "severityLabel": sev_label,
+                "title": title,
+                "asff": asff,
+                "schemaVersion": "v0.1",
+            }
         )
-        print(f"Written curated snapshot: s3://{CURATED_BUCKET}/{curated_key}")
+        index_items.append(
+            {
+                "pk": f"FINDING#{finding_id}",
+                "sk": "META",
+                "entityType": "FINDING_INDEX",
+                "runId": run_id,
+                "findingId": finding_id,
+                "source": "pingcastle",
+                "domain": domain,
+                "riskId": risk_id,
+                "severityLabel": sev_label,
+                "title": title,
+                "asff": asff,
+                "schemaVersion": "v0.1",
+            }
+        )
+
+    # RUN summary
+    run_item = {
+        "pk": f"RUN#{run_id}",
+        "sk": "META",
+        "entityType": "RUN",
+        "runId": run_id,
+        "source": "pingcastle",
+        "domain": domain,
+        "generationDate": generation_date,
+        "generationDateUtc": generation_date_utc,
+        "createdAt": created_at,
+        "rawS3Key": raw_s3_key,
+        "rulesPackId": rules_pack_id or "",
+        "findingCount": len(findings_items),
+        "stats": stats,
+        "schemaVersion": "v0.1",
+    }
+
+    # RUN index for list/latest queries without a table scan
+    run_index_item = {
+        "pk": "RUNS#pingcastle",
+        "sk": f"{generation_date_utc}#RUN#{run_id}",
+        "entityType": "RUN_INDEX",
+        "runId": run_id,
+        "source": "pingcastle",
+        "domain": domain,
+        "generationDateUtc": generation_date_utc,
+        "generationDate": generation_date,
+        "findingCount": len(findings_items),
+        "schemaVersion": "v0.1",
+    }
+
+    # Write to DDB (batch)
+    with table.batch_writer(overwrite_by_pkeys=["pk", "sk"]) as batch:
+        batch.put_item(Item=run_item)
+        batch.put_item(Item=run_index_item)
+        for it in findings_items:
+            batch.put_item(Item=it)
+        for it in index_items:
+            batch.put_item(Item=it)
+
+    # Write curated snapshot (ASFF list)
+    curated_key = f"curated/pingcastle/runs/runId={run_id}/findings.asff.json"
+    s3.put_object(
+        Bucket=CURATED_BUCKET,
+        Key=curated_key,
+        Body=json.dumps(
+            {
+                "runId": run_id,
+                "source": "pingcastle",
+                "domain": domain,
+                "generationDate": generation_date,
+                "generationDateUtc": generation_date_utc,
+                "rawS3Key": raw_s3_key,
+                "rulesPackId": rules_pack_id or "",
+                "findingCount": len(findings_items),
+                "stats": stats,
+                "findings": [it["asff"] for it in findings_items],
+                "schemaVersion": "v0.1",
+            },
+            indent=2,
+        ),
+        ContentType="application/json",
+    )
+
+    print(f"Report processed. runId={run_id}, findings={len(findings_items)}")
+    return {"statusCode": 200, "body": json.dumps({"message": "Report processed", "runId": run_id})}
+
+
+def load_latest_rules_pack():
+    """
+    Loads the latest rules pack pointer from DDB, then loads the pack payload from S3 curated.
+    If missing, we still ingest reports (but we lose Title/Description/Solution enrichment).
+    """
+    try:
+        resp = table.get_item(Key={"pk": "PINGCASTLE#RULES", "sk": "LATEST"})
+        item = resp.get("Item")
+        if not item:
+            print("No LATEST rules pack in DDB.")
+            return None, {}
+
+        pack_id = item.get("packId")
+        curated_s3_key = item.get("curatedS3Key")
+        if not curated_s3_key:
+            return pack_id, {}
+
+        obj = s3.get_object(Bucket=CURATED_BUCKET, Key=curated_s3_key)
+        payload = json.loads(obj["Body"].read().decode("utf-8"))
+        return pack_id, payload.get("rulesByRiskId", {}) or {}
     except Exception as e:
-        print(f"Error writing curated snapshot: {str(e)}")
-        raise
+        print(f"Failed to load latest rules pack: {str(e)}")
+        return None, {}
+
+
+def pingcastle_points_to_asff_sev(points_str: str):
+    """
+    Current heuristic (can be tuned later):
+    - >=30 -> CRITICAL
+    - >=20 -> HIGH
+    - >=10 -> MEDIUM
+    - >=1  -> LOW
+    - 0    -> INFORMATIONAL
+    """
+    try:
+        p = int(points_str)
+    except Exception:
+        p = 0
+
+    if p >= 30:
+        return "CRITICAL", 90
+    if p >= 20:
+        return "HIGH", 70
+    if p >= 10:
+        return "MEDIUM", 40
+    if p >= 1:
+        return "LOW", 20
+    return "INFORMATIONAL", 0
+
+
+def _get_text(parent: ET.Element, tag: str) -> str:
+    e = parent.find(tag)
+    return e.text.strip() if e is not None and e.text else ""
+
+
+def _find_text(root: ET.Element, path: str) -> str:
+    e = root.find(path)
+    return e.text.strip() if e is not None and e.text else ""

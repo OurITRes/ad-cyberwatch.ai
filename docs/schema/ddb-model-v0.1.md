@@ -1,118 +1,141 @@
-# DynamoDB Data Model (Single Table Design) v0.1
+# DynamoDB Single-Table Model (v0.1)
 
-## 1. Table Design
+## Goal (v1.0)
 
-### Primary Key Configuration
+We need query patterns that unblock UI + API **without scans**:
 
-- **Partition Key (PK):** `pk` (String)
-- **Sort Key (SK):** `sk` (String)
+1. List runs (latest first)
+2. Get run details + stats
+3. List findings for a run (filters later)
+4. Get finding details by findingId
+5. Get latest PingCastle rules pack + pack metadata
 
-### Global Secondary Indexes (GSI)
-
-**GSI1** (Utilisé pour le "Reverse Lookup" des findings à travers le temps)
-
-- **PK:** `gsi1pk` (String)
-- **SK:** `gsi1sk` (String)
-
-## 2. Entities & Access Patterns
-
-### 2.1 RUN (Scan Execution)
-
-Représente l'exécution d'un scan (PingCastle, BloodHound, etc.).
-
-| Attribute | Value / Pattern | Description |
-| :--- | :--- | :--- |
-| **pk** | `TENANT#default` | Partition unique pour lister tous les runs (Multi-tenant ready). |
-| **sk** | `RUN#<runId>` | `runId` est un timestamp ISO ou UUID (ex: `2024-12-24T10:00:00Z`). |
-| `runId` | String | Identifiant unique de l'exécution. |
-| `source` | `pingcastle` \| `bhe` | Source de la donnée. |
-| `createdAt` | ISO8601 String | Date de création. |
-| `domain` | String | Domaine audité (ex: `corp.local`). |
-| `rawS3Key` | String (S3 URI) | Chemin vers le fichier brut (XML/JSON uploadé). |
-| `curatedS3Key` | String (S3 URI) | Chemin vers le fichier normalisé (ASFF JSON). |
-| `stats` | Map | Résumé (ex: `{ "total": 50, "critical": 2 }`). |
-
-**Access Pattern (Query):**
-
-- **Lister les runs récents :** `PK="TENANT#default" AND SK begins_with("RUN#")` (ScanIndexForward=false)
+> Constraint: current `template.yaml` creates **only** `pk` (HASH) + `sk` (RANGE), no GSIs.
 
 ---
 
-### 2.2 FINDING (Security Issue)
+## Partition / Sort key patterns
 
-Représente une anomalie de sécurité détectée lors d'un run spécifique.
+### 1) RUN (metadata)
 
-| Attribute | Value / Pattern | Description |
-| :--- | :--- | :--- |
-| **pk** | `RUN#<runId>` | Regroupe tous les findings d'un même scan. |
-| **sk** | `FINDING#<findingId>` | `findingId` composite (ex: `pc:rule=PC-001;asset=dom`). |
-| **gsi1pk** | `<findingId>` | **Lookup Direct** : ID du finding (sans le préfixe FINDING# si souhaité, ou avec). |
-| **gsi1sk** | `RUN#<runId>` | Permet de trier l'historique de ce finding par date de run. |
-| `findingId` | String | Identifiant déterministe unique du finding. |
-| `asff` | JSON Map | Le payload complet au format ASFF (voir `finding-asff.md`). |
-| `severityLabel` | String | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `INFO`. |
-| `title` | String | Titre du finding pour affichage liste. |
-| `resourceKey` | String | Identifiant de la ressource touchée (ex: `user1@corp.local`). |
-| `workflowStatus` | String | `NEW`, `NOTIFIED`, `RESOLVED`, `SUPPRESSED`. |
-| `recordState` | String | `ACTIVE`, `ARCHIVED`. |
-| `tags` | `List of strings` | Tags de compliance (ex: `NIST`, `MITRE:T1003`). |
-| `overrides` | Map | Surcharges manuelles (ex: fausses positifs, changement sévérité). |
+- **pk:** `RUN#<runId>`
+- **sk:** `META`
+- entityType: `RUN`
 
-**Access Pattern (Query):**
+Attributes (minimum):
 
-- **Récupérer le rapport d'un run :** `PK="RUN#<runId>"`
-- **Voir l'historique d'un finding :** `GSI1PK="<findingId>"` (via Index GSI1)
+- runId, source, domain
+- generationDate, generationDateUtc
+- rawS3Key, rulesPackId
+- findingCount, stats
+- schemaVersion
+
+### 2) RUN_INDEX (list runs, latest first)
+
+To list runs efficiently (no scan):
+
+- **pk:** `RUNS#<source>` (ex: `RUNS#pingcastle`)
+- **sk:** `<generationDateUtc>#RUN#<runId>` (ISO UTC sorts naturally)
+- entityType: `RUN_INDEX`
+
+Query for latest:
+
+Query `pk=RUNS#pingcastle`, `ScanIndexForward=false`, `Limit=1`.
+
+Attributes (minimum):
+
+- runId, source, domain
+- generationDate, generationDateUtc
+- rawS3Key, rulesPackId
+- findingCount, stats
+- schemaVersion
+
+Attributes (minimum):
+
+- findingId, runId, source, domain
+- asff (full JSON)
+- schemaVersion
+
+Attributes (minimum):
+
+- findingId, runId, source, domain
+- severityLabel, title
+- asff (full JSON)
+- schemaVersion
+
+Query findings of a run:
+
+- Query `pk=RUN#<runId>` and `begins_with(sk, "FINDING#")`.
+
+- **pk:** `FINDING#<findingId>`
+- **sk:** `META`
+
+Get finding details:
+
+- `GetItem(pk="FINDING#<findingId>", sk="META")`.
+
+- Stores the same `asff` payload as the run-partitioned item (v0.1).
+
+Get finding details:
+
+Rules pack metadata:
+
+- **pk:** `PINGCASTLE#RULES`
+- **sk:** `PACK#<packId>`
+- entityType: `RULES_PACK`
+- Stores metadata only (packId, curatedS3Key, updatedAt, ruleCount, rawS3Key)
+
+Rules pack metadata:
+
+Latest pointer:
+
+- **pk:** `PINGCASTLE#RULES`
+- **sk:** `LATEST`
+- entityType: `RULES_LATEST`
+- Stores packId + curatedS3Key.
+
+- Stores metadata only (packId, curatedS3Key, updatedAt, ruleCount, rawS3Key)
+
+Latest pointer:
+
+Rules pack:
+
+- `curated/pingcastle/rules/packId=<packId>/rules.json`
+- `curated/pingcastle/rules/latest.json` (pointer)
+
+- **sk:** `LATEST`
+
+Run snapshot:
+
+- `curated/pingcastle/runs/runId=<runId>/findings.asff.json`
+
+- Stores packId + curatedS3Key.
 
 ---
 
-### 2.3 MAPPING (Compliance Rules)
+We keep space for:
 
-Définit la correspondance entre une règle technique (Source) et un Framework de conformité.
+- Overrides/tags by findingId
+- Compliance mappings (riskId → controlId, etc.)
+- Compliance reports (runId + frameworkId → coverage/gaps)
 
-| Attribute | Value / Pattern | Description |
-| :--- | :--- | :--- |
-| **pk** | `MAP#<frameworkId>#<version>` | ex: `MAP#NIST_CSF#2.0` ou `MAP#MITRE_ATTACK#v14`. |
-| **sk** | `SRC#<source>#RULE#<ruleId>` | ex: `SRC#pingcastle#RULE#P-063`. |
-| `controlIds` | `List of strings` | Liste des contrôles cibles (ex: `["PR.AC-01"]`). |
-| `confidence` | Number | Niveau de confiance du mapping (0-100). |
-| `notes` | String | Justification du mapping (humain ou IA). |
+Rules pack:
 
-## 3 Access Pattern (Query Strategies)
+- `curated/pingcastle/rules/packId=<packId>/rules.json`
+- `curated/pingcastle/rules/latest.json` (pointer)
 
-### 3.1. UI - Dashboard Principal
+Run snapshot:
 
-Afficher la liste des scans récents.
+- `curated/pingcastle/runs/runId=<runId>/findings.asff.json`
 
-- `PK = "TENANT#default"`
-- `SK begins_with "RUN#"`
-- `ScanIndexForward = false` (Du plus récent au plus ancien).
+---
 
-### 3.2. UI - Rapport de Scan (Details)
+## Future placeholders (not in v1.0, but reserved)
 
-Afficher tous les findings d'un scan spécifique.
+We keep space for:
 
-- `PK = "RUN#<selected_run_id>"`
-- (Optionnel) `SK begins_with "FINDING#"`
-- `ScanIndexForward = false` (si on ajoute d'autres métadonnées dans le futur).
+- Overrides/tags by findingId
+- Compliance mappings (riskId → controlId, etc.)
+- Compliance reports (runId + frameworkId → coverage/gaps)
 
-### 3.3. Compliance Engine - Enrichissement
-
-Quand un finding P-063 arrive, quels sont les contrôles NIST associés ?
-
-- `PK = "MAP#NIST_CSF_2.0"`
-- `SK = "SRC#pingcastle#RULE#P-063"`
-
-Note: En production, ces mappings sont mis en cache (Memory/Redis) pour éviter de requêter DDB à chaque finding.
-
-### 3.4. Recherche d'historique (Finding Lifecycle)
-
-Voir l'évolution d'un problème spécifique ("Est-ce que ce serveur a toujours eu ce problème ?").
-
-- `GSI1PK = "FINDING#<specific_finding_id>"`
-- `GSI1SK (trie par run/date).`
-
-## 4. Notes
-
-1. **Frameworks Definition :** Les définitions de frameworks (liste des contrôles, descriptions) ne sont pas stockées
-dans DynamoDB mais dans des fichiers statiques S3 (ou code), car ce sont des données froides (issue #38).
-2. **ASFF Storage :** L'attribut `asff` est stocké directement dans l'item FINDING.
+…but we do not add them to v0.1 unless needed by UI wiring.
