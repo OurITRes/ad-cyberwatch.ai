@@ -1,19 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { getSelectedEnv, setSelectedEnv } from '../services/api';
 
 export default function EnvironmentSwitcher() {
   const [env, setEnv] = useState(getSelectedEnv());
-  const [envs, setEnvs] = useState([]);
-
-  useEffect(() => {
+  const [envs] = useState(() => {
     try {
       const raw = localStorage.getItem('cw.envs');
-      const parsed = raw ? JSON.parse(raw) : [];
-      setEnvs(parsed);
+      return raw ? JSON.parse(raw) : [];
     } catch {
-      setEnvs([]);
+      return [];
     }
-  }, []);
+  });
 
   if (!envs || envs.length === 0) return null;
 
