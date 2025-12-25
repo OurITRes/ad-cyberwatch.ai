@@ -153,6 +153,37 @@ async function controlMeHandler(event, headers) {
   }, headers);
 }
 
+async function listUploadsFromS3(env) {
+  const Prefix = `raw/env=${env}/`;
+  const resp = await s3.send(new ListObjectsV2Command({
+    Bucket: RAW_BUCKET,
+    Prefix,
+    MaxKeys: 100
+  }));
+
+  const items = (resp.Contents || []).map(o => {
+    const key = o.Key;
+    const filename = key.split('/').pop();
+    return {
+      id: key,                 // simple et stable
+      s3Key: key,
+      filename,
+      status: "uploaded",
+      findings: 0,
+      uploadedAt: (o.LastModified || new Date()).toISOString()
+    };
+  });
+
+  // tri newest first
+  items.sort((a,b) => (b.uploadedAt || "").localeCompare(a.uploadedAt || ""));
+  return items;
+}
+
+async function deleteUploadFromS3(key) {
+  await s3.send(new DeleteObjectCommand({ Bucket: RAW_BUCKET, Key: key }));
+  return { ok: true };
+}
+
 /**
  * POST /uploads/presign (protected)  (legacy)
  * POST /data/{env}/uploads/presign (protected)
