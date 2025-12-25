@@ -1,3 +1,8 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const fs = require('fs');
+const path = require('path');
+const { parseStringPromise } = require('xml2js');
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
@@ -205,16 +210,19 @@ async function presignHandler(event, headers, env) {
 
   if (!RAW_BUCKET) return json(500, { error: 'RAW_BUCKET missing' }, headers);
 
+
+  // Génère un uploadId unique (UUID)
+  const uploadId = randomUUID();
   // MVP "séparation env" => préfixe dans la clé
   const today = new Date().toISOString().split('T')[0];
   const uuid = randomUUID();
   const safeEnv = (env || DEFAULT_DATA_ENV || 'prod').replace(/[^a-zA-Z0-9_-]/g, '');
-  const s3Key = `raw/env=${safeEnv}/${source}/scan/date=${today}/${uuid}.xml`;
+  const s3Key = `raw/env=${safeEnv}/${source}/scan/date=${today}/${uploadId}.xml`;
 
   try {
     const command = new PutObjectCommand({ Bucket: RAW_BUCKET, Key: s3Key });
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
-    return json(200, { uploadUrl, s3Key, expiresIn: 900 }, headers);
+    return json(200, { uploadUrl, s3Key, uploadId, expiresIn: 900 }, headers);
   } catch (err) {
     console.error('[presign] error:', err);
     return json(500, { error: 'Failed to generate presigned URL' }, headers);
@@ -226,7 +234,7 @@ async function uploadsListHandler(event, headers, env) {
 
   const safeEnv = (env || DEFAULT_DATA_ENV || 'prod').replace(/[^a-zA-Z0-9_-]/g, '');
   const items = await listUploadsFromS3(safeEnv);
-  return json(200, { env: safeEnv, items }, headers);
+  return json(200, { env: safeEnv, uploads: items }, headers);
 }
 
 async function uploadsDeleteHandler(event, headers, env) {
@@ -272,6 +280,37 @@ export const handler = async (event) => {
     if (method === 'POST' && m) return await presignHandler(event, headers, m[1]);
     if (method === 'POST' && path === '/uploads/presign') return await presignHandler(event, headers, DEFAULT_DATA_ENV);
 
+    // GET /data/{env}/pingcastle/rules
+    const mRules = path.match(/^\/data\/([^/]+)\/pingcastle\/rules$/);
+    if (mRules && method === 'GET') {
+      try {
+        const rulesPath = path.join(__dirname, '../../../../server/data/PingCastleRules.xml');
+        const xml = fs.readFileSync(rulesPath, 'utf-8');
+        const result = await parseStringPromise(xml, { explicitArray: false });
+        const rules = result.ArrayOfExportedRule?.ExportedRule || [];
+        return json(200, { rules }, headers);
+      } catch (err) {
+        console.error('Error reading PingCastleRules.xml:', err);
+        return json(500, { error: 'Failed to load PingCastle rules' }, headers);
+      }
+    }
+
+    // GET /data/{env}/pingcastle/weaknesses (or findings)
+    const mWeak = path.match(/^\/data\/([^/]+)\/pingcastle\/(weaknesses|findings)$/);
+    if (mWeak && method === 'GET') {
+      try {
+        // Pour MVP, on prend le fichier ad_hc_labad.local.xml
+        const xmlPath = path.join(__dirname, '../../../../server/data/ad_hc_labad.local.xml');
+        const xml = fs.readFileSync(xmlPath, 'utf-8');
+        const result = await parseStringPromise(xml, { explicitArray: false });
+        // Extraction simple des faiblesses (RiskRules)
+        const rules = result.HealthcheckData?.RiskRules?.HealthcheckRiskRule || [];
+        return json(200, { weaknesses: rules }, headers);
+      } catch (err) {
+        console.error('Error reading PingCastle findings:', err);
+        return json(500, { error: 'Failed to load PingCastle weaknesses' }, headers);
+      }
+    }
     // data plane uploads list/delete
     const mList = path.match(/^\/data\/([^/]+)\/uploads$/);
     if (mList && method === 'GET') return await uploadsListHandler(event, headers, mList[1]);

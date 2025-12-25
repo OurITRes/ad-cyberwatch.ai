@@ -356,7 +356,7 @@ export async function getUploads() {
     }
     
     const data = await response.json();
-    return data.uploads || [];
+    return data.uploads || data.items || [];
   } catch (error) {
     console.error('Get uploads error:', error);
     throw error;
@@ -398,37 +398,21 @@ export async function getMe() {
 }
 
 export async function getWeaknesses() {
-  try {
-    // Always use local server for weaknesses (both local and SSO users)
-    const localAPI = API_BASE;
-    
-    const response = await fetch(`${localAPI}/weaknesses`);
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || 'Failed to get weaknesses');
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Get weaknesses error:', error);
-    throw error;
+  const response = await fetchWithAuth(dataUrl('/pingcastle/weaknesses'));
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to get weaknesses');
   }
+  return await response.json();
 }
 
 export async function getPingCastleRules() {
-  try {
-    // Always use local server for PingCastle rules
-    const localAPI = API_BASE;
-    
-    const response = await fetch(`${localAPI}/pingcastle/rules`);
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || 'Failed to get PingCastle rules');
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Get PingCastle rules error:', error);
-    throw error;
+  const response = await fetchWithAuth(dataUrl('/pingcastle/rules'));
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to get PingCastle rules');
   }
+  return await response.json();
 }
 
 export async function getWeaknessDetail(weaknessId) {
