@@ -1,9 +1,6 @@
 import { CognitoUserPool, CognitoUser, AuthenticationDetails } from 'amazon-cognito-identity-js';
 
 
-import { API_BASE, dataUrl, controlUrl } from './api';
-
-const localAPI = API_BASE;
 
 // OIDC: Decode JWT without verification (for claims extraction from id_token)
 // Note: Token signature verification happens server-side; client-side decode is safe for display only
