@@ -16,7 +16,7 @@ export const useConfig = () => {
 
   // Load config from server on mount
   useEffect(() => {
-    fetch('http://127.0.0.1:3001/config')
+    fetch('http://127.0.0.1:3001/public/config')
       .then(res => res.json())
       .then(data => {
         if (data.config) {
@@ -50,7 +50,7 @@ export const useConfig = () => {
     const payloadConfig = overrideConfig ? { ...config, ...overrideConfig } : config;
 
     // Persist to server endpoint
-    fetch('http://127.0.0.1:3001/config', {
+    fetch('http://127.0.0.1:3001/public/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ config: payloadConfig, supportedLanguages })
