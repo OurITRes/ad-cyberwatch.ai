@@ -1,4 +1,23 @@
-# AD Cyberwatch.AI (beta)
+# SITARCA (beta)
+
+<table style="width: 100%; border-collapse: collapse; border: 0px solid #ddd;">
+  <thead>
+    <tr style="background-color: #f8f9fa;">
+      <th rowspan="2" style="padding: 8px;"> <img src="https://github.com/OurITRes/.github/blob/main/sitarca.svg" width="60" height="60"> </th>
+    </tr>
+    <tr style="background-color: #f8f9fa;">
+      <th style="padding: 8px;"><span style="font-weight: 600; color: #2C3E50; letter-spacing: 0.1em; ">Synchronized Intelligence, Tiered Automated Remediation &amp; Conformity Alignment</th>
+    </tr>
+  </thead>
+</table>
+
+<table style="width: 100%; border-collapse: collapse; border: 0px solid #ddd;">
+  <thead>
+    <tr>
+      <th style="padding: 8px;"> <span>HEX</span> <span>#4169E1</span> </th>
+    </tr>
+  </thead>
+</table>
 
 Tableau de bord de sécurité Active Directory avec vues dédiées
 (Command Center, Investigation & Graphe, Plan de remédiation, IA/Modèle,
